@@ -118,7 +118,7 @@ def ingest_csv_to_duckdb(conn: duckdb.DuckDBPyConnection, csv_path: Path) -> Tup
     table_name = get_table_name(csv_path)
     file_size = csv_path.stat().st_size
     
-    print(f"  📥 Importing {table_name} ({format_size(file_size)})...", end=" ", flush=True)
+    print(f"  -> Importing {table_name} ({format_size(file_size)})...", end=" ", flush=True)
     
     start_time = time.time()
     
@@ -137,7 +137,7 @@ def ingest_csv_to_duckdb(conn: duckdb.DuckDBPyConnection, csv_path: Path) -> Tup
     row_count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
     
     elapsed = time.time() - start_time
-    print(f"✓ {row_count:,} rows ({format_time(elapsed)})")
+    print(f"[OK] {row_count:,} rows ({format_time(elapsed)})")
     
     return table_name, row_count, elapsed
 
@@ -163,7 +163,7 @@ def create_indexes(conn: duckdb.DuckDBPyConnection, table_name: str) -> int:
             indexes_created += 1
         except Exception as e:
             # Column might not exist in this dataset
-            print(f"    ⚠️  Could not create index {index_name}: {e}")
+            print(f"    [WARN] Could not create index {index_name}: {e}")
     
     return indexes_created
 
@@ -171,7 +171,7 @@ def create_indexes(conn: duckdb.DuckDBPyConnection, table_name: str) -> int:
 def create_longitudinal_views(conn: duckdb.DuckDBPyConnection):
     """Create helpful views for longitudinal data access."""
     
-    print("\n📊 Creating longitudinal views...")
+    print("\n[VIEWS] Creating longitudinal views...")
     
     # View: Patient timeline with all events unified
     conn.execute("""
@@ -260,7 +260,7 @@ def create_longitudinal_views(conn: duckdb.DuckDBPyConnection):
         FROM all_events e
         LEFT JOIN concept c ON e.concept_id = c.concept_id
     """)
-    print("  ✓ Created view: patient_timeline")
+    print("  [OK] Created view: patient_timeline")
     
     # View: Patient summary statistics
     conn.execute("""
@@ -283,7 +283,7 @@ def create_longitudinal_views(conn: duckdb.DuckDBPyConnection):
         FROM person p
         LEFT JOIN death d ON p.person_id = d.person_id
     """)
-    print("  ✓ Created view: patient_summary")
+    print("  [OK] Created view: patient_summary")
     
     # View: Concept lookup helper
     conn.execute("""
@@ -298,14 +298,14 @@ def create_longitudinal_views(conn: duckdb.DuckDBPyConnection):
         FROM concept
         WHERE concept_id != 0
     """)
-    print("  ✓ Created view: concept_lookup")
+    print("  [OK] Created view: concept_lookup")
 
 
 def print_database_stats(conn: duckdb.DuckDBPyConnection):
     """Print summary statistics about the database."""
     
     print("\n" + "="*60)
-    print("📈 DATABASE STATISTICS")
+    print("DATABASE STATISTICS")
     print("="*60)
     
     # Get all tables
@@ -331,14 +331,14 @@ def print_database_stats(conn: duckdb.DuckDBPyConnection):
     # Database file size
     if DB_PATH.exists():
         db_size = DB_PATH.stat().st_size
-        print(f"\n💾 Database file size: {format_size(db_size)}")
+        print(f"\n[SIZE] Database file size: {format_size(db_size)}")
 
 
 def print_sample_queries():
     """Print example queries for using the database."""
     
     print("\n" + "="*60)
-    print("🔍 SAMPLE QUERIES")
+    print("SAMPLE QUERIES")
     print("="*60)
     
     queries = [
@@ -389,26 +389,26 @@ def main(data_path: Path = DEFAULT_DATA_PATH, db_path: Path = DEFAULT_DB_PATH,
     """Main ingestion function."""
     
     print("="*60)
-    print("🦆 DuckDB Ingestion Script for OMOP CDM Data")
+    print("DuckDB Ingestion Script for OMOP CDM Data")
     print("="*60)
     
     # Check data directory exists
     if not data_path.exists():
-        print(f"❌ Error: Data directory not found: {data_path}")
+        print(f"[ERROR] Data directory not found: {data_path}")
         return
     
     # Get all CSV files
     csv_files = get_csv_files(data_path)
     if not csv_files:
-        print(f"❌ Error: No CSV files found in {data_path}")
+        print(f"[ERROR] No CSV files found in {data_path}")
         return
     
-    print(f"\n📁 Found {len(csv_files)} CSV files in {data_path}")
-    print(f"💾 Creating database: {db_path}")
+    print(f"\n[INFO] Found {len(csv_files)} CSV files in {data_path}")
+    print(f"[INFO] Creating database: {db_path}")
     
     # Remove existing database for fresh start
     if db_path.exists():
-        print(f"⚠️  Removing existing database...")
+        print(f"[WARN] Removing existing database...")
         db_path.unlink()
     
     # Connect to DuckDB
@@ -418,7 +418,7 @@ def main(data_path: Path = DEFAULT_DATA_PATH, db_path: Path = DEFAULT_DB_PATH,
     conn.execute(f"SET threads TO {threads}")
     conn.execute(f"SET memory_limit = '{memory_limit}'")
     
-    print("\n📥 Importing tables...")
+    print("\n[IMPORT] Importing tables...")
     total_start = time.time()
     total_rows = 0
     table_stats = []
@@ -430,32 +430,32 @@ def main(data_path: Path = DEFAULT_DATA_PATH, db_path: Path = DEFAULT_DB_PATH,
             table_stats.append((table_name, row_count, elapsed))
             total_rows += row_count
         except Exception as e:
-            print(f"  ❌ Failed to import {csv_path.name}: {e}")
+            print(f"  [ERROR] Failed to import {csv_path.name}: {e}")
     
     total_import_time = time.time() - total_start
-    print(f"\n✓ Imported {total_rows:,} total rows in {format_time(total_import_time)}")
+    print(f"\n[OK] Imported {total_rows:,} total rows in {format_time(total_import_time)}")
     
     # Create indexes
-    print("\n🔧 Creating indexes...")
+    print("\n[INDEX] Creating indexes...")
     index_start = time.time()
     total_indexes = 0
     
     for table_name, _, _ in table_stats:
         indexes_created = create_indexes(conn, table_name)
         if indexes_created > 0:
-            print(f"  ✓ {table_name}: {indexes_created} indexes")
+            print(f"  [OK] {table_name}: {indexes_created} indexes")
             total_indexes += indexes_created
     
     index_time = time.time() - index_start
-    print(f"\n✓ Created {total_indexes} indexes in {format_time(index_time)}")
+    print(f"\n[OK] Created {total_indexes} indexes in {format_time(index_time)}")
     
     # Create views
     create_longitudinal_views(conn)
     
     # Analyze tables for query optimization
-    print("\n🔬 Analyzing tables for query optimization...")
+    print("\n[ANALYZE] Analyzing tables for query optimization...")
     conn.execute("ANALYZE")
-    print("  ✓ Analysis complete")
+    print("  [OK] Analysis complete")
     
     # Print statistics
     print_database_stats(conn)
@@ -468,7 +468,7 @@ def main(data_path: Path = DEFAULT_DATA_PATH, db_path: Path = DEFAULT_DB_PATH,
     
     total_time = time.time() - total_start
     print("\n" + "="*60)
-    print(f"✅ INGESTION COMPLETE in {format_time(total_time)}")
+    print(f"[DONE] INGESTION COMPLETE in {format_time(total_time)}")
     print("="*60)
     print(f"\nDatabase ready at: {db_path}")
     print("\nTo use in Python:")

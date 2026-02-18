@@ -583,7 +583,7 @@ class PatientLongitudinalData:
         report.append("="*70)
         
         # Demographics section
-        report.append("\n📋 DEMOGRAPHICS")
+        report.append("\n[DEMOGRAPHICS]")
         report.append("-"*40)
         report.append(f"  Patient ID: {demo['person_id']}")
         report.append(f"  Gender: {demo['gender']}")
@@ -593,29 +593,29 @@ class PatientLongitudinalData:
         
         # Death info if applicable
         if record["death"]:
-            report.append(f"\n⚠️  DECEASED: {record['death']['death_date']}")
+            report.append(f"\n[DECEASED] {record['death']['death_date']}")
         
         # Summary statistics
-        report.append("\n📊 RECORD SUMMARY")
+        report.append("\n[SUMMARY]")
         report.append("-"*40)
         report.append(f"  Total Events: {summary['total_events']}")
         report.append(f"  Date Range: {summary['date_range']['first_event']} to {summary['date_range']['last_event']}")
         
         report.append("\n  Event Breakdown:")
         for event_type, count in summary['event_counts'].items():
-            emoji = {
-                'visit': '🏥',
-                'condition': '🩺',
-                'drug': '💊',
-                'procedure': '⚕️',
-                'measurement': '🔬',
-                'observation': '👁️'
-            }.get(event_type, '•')
-            report.append(f"    {emoji} {event_type.capitalize()}: {count}")
+            label = {
+                'visit': '[V]',
+                'condition': '[C]',
+                'drug': '[D]',
+                'procedure': '[P]',
+                'measurement': '[M]',
+                'observation': '[O]'
+            }.get(event_type, '*')
+            report.append(f"    {label} {event_type.capitalize()}: {count}")
         
         # Recent events
         if len(timeline) > 0:
-            report.append("\n📅 RECENT EVENTS (Last 10)")
+            report.append("\n[RECENT EVENTS] (Last 10)")
             report.append("-"*40)
             recent = timeline.tail(10)
             for _, event in recent.iterrows():
@@ -653,7 +653,7 @@ def main(db_path: Path = DEFAULT_DB_PATH, person_id: int = None, output_dir: str
             if output_dir:
                 output_path = extractor.export_patient_record(person_id, output_dir)
                 if output_path:
-                    print(f"\n✅ Complete record exported to: {output_path}")
+                    print(f"\n[OK] Complete record exported to: {output_path}")
 
 
 def parse_args():

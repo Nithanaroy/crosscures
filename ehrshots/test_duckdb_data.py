@@ -37,7 +37,7 @@ def main(db_path: Path, person_id: int):
     conn = duckdb.connect(str(db_path), read_only=True)
     
     # Test 1: Get patient timeline
-    print('🔍 Query 1: Get full patient timeline (all events)')
+    print('[QUERY 1] Get full patient timeline (all events)')
     start = time.time()
     df = conn.execute(f"""
         SELECT event_date, event_type, concept_name, source_value
@@ -51,7 +51,7 @@ def main(db_path: Path, person_id: int):
     print()
 
     # Test 2: Patient summary
-    print('🔍 Query 2: Get patient summary')
+    print('[QUERY 2] Get patient summary')
     start = time.time()
     df = conn.execute(f'SELECT * FROM patient_summary WHERE person_id = {person_id}').df()
     print(f'   Results in {(time.time()-start)*1000:.1f}ms')
@@ -60,7 +60,7 @@ def main(db_path: Path, person_id: int):
     print()
 
     # Test 3: Search across 40M measurements
-    print('🔍 Query 3: Search measurements for a patient (40M row table)')
+    print('[QUERY 3] Search measurements for a patient (40M row table)')
     start = time.time()
     df = conn.execute(f"""
         SELECT measurement_DATE, c.concept_name, value_as_number, unit_source_value
@@ -76,7 +76,7 @@ def main(db_path: Path, person_id: int):
     print()
 
     # Test 4: Count all events per type across entire dataset
-    print('🔍 Query 4: Aggregate - count events by type (248M rows)')
+    print('[QUERY 4] Aggregate - count events by type (248M rows)')
     start = time.time()
     df = conn.execute("""
         SELECT event_type, COUNT(*) as count
