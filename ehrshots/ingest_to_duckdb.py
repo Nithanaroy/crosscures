@@ -20,12 +20,13 @@ The script will:
 import duckdb
 import os
 import time
+import argparse
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-# Configuration
-DATA_PATH = Path(__file__).parent / "data" / "tables"
-DB_PATH = Path(__file__).parent / "data" / "patient_data.duckdb"
+# Default Configuration
+DEFAULT_DATA_PATH = Path(__file__).parent.parent / "data" / "tables"
+DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "patient_data.duckdb"
 
 # Define indexes for each table: table_name -> list of (column(s), index_name)
 # These are optimized for patient longitudinal queries
@@ -383,7 +384,8 @@ ORDER BY m.measurement_DATE;
         print(query.strip())
 
 
-def main():
+def main(data_path: Path = DEFAULT_DATA_PATH, db_path: Path = DEFAULT_DB_PATH, 
+         threads: int = 4, memory_limit: str = "4GB"):
     """Main ingestion function."""
     
     print("="*60)
@@ -391,30 +393,30 @@ def main():
     print("="*60)
     
     # Check data directory exists
-    if not DATA_PATH.exists():
-        print(f"❌ Error: Data directory not found: {DATA_PATH}")
+    if not data_path.exists():
+        print(f"❌ Error: Data directory not found: {data_path}")
         return
     
     # Get all CSV files
-    csv_files = get_csv_files(DATA_PATH)
+    csv_files = get_csv_files(data_path)
     if not csv_files:
-        print(f"❌ Error: No CSV files found in {DATA_PATH}")
+        print(f"❌ Error: No CSV files found in {data_path}")
         return
     
-    print(f"\n📁 Found {len(csv_files)} CSV files in {DATA_PATH}")
-    print(f"💾 Creating database: {DB_PATH}")
+    print(f"\n📁 Found {len(csv_files)} CSV files in {data_path}")
+    print(f"💾 Creating database: {db_path}")
     
     # Remove existing database for fresh start
-    if DB_PATH.exists():
+    if db_path.exists():
         print(f"⚠️  Removing existing database...")
-        DB_PATH.unlink()
+        db_path.unlink()
     
     # Connect to DuckDB
-    conn = duckdb.connect(str(DB_PATH))
+    conn = duckdb.connect(str(db_path))
     
     # Configure DuckDB for optimal performance
-    conn.execute("SET threads TO 4")  # Adjust based on your CPU
-    conn.execute("SET memory_limit = '4GB'")  # Adjust based on available RAM
+    conn.execute(f"SET threads TO {threads}")
+    conn.execute(f"SET memory_limit = '{memory_limit}'")
     
     print("\n📥 Importing tables...")
     total_start = time.time()
@@ -468,21 +470,60 @@ def main():
     print("\n" + "="*60)
     print(f"✅ INGESTION COMPLETE in {format_time(total_time)}")
     print("="*60)
-    print(f"\nDatabase ready at: {DB_PATH}")
+    print(f"\nDatabase ready at: {db_path}")
     print("\nTo use in Python:")
-    print("""
+    print(f'''
 import duckdb
-conn = duckdb.connect('patient_data.duckdb')
+conn = duckdb.connect('{db_path}')
 
 # Get patient timeline
-df = conn.execute('''
+df = conn.execute(\'\'\'
     SELECT * FROM patient_timeline 
     WHERE person_id = 115970875 
     ORDER BY event_date
-''').df()
+\'\'\').df()
 print(df)
-""")
+''')
+
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Ingest OMOP CDM CSV files into DuckDB for fast querying.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--data-path", "-d",
+        type=Path,
+        default=DEFAULT_DATA_PATH,
+        help="Path to directory containing OMOP CDM CSV files"
+    )
+    parser.add_argument(
+        "--db-path", "-o",
+        type=Path,
+        default=DEFAULT_DB_PATH,
+        help="Output path for DuckDB database file"
+    )
+    parser.add_argument(
+        "--memory-limit",
+        type=str,
+        default="4GB",
+        help="Memory limit for DuckDB (e.g., '4GB', '8GB')"
+    )
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=4,
+        help="Number of threads for DuckDB to use"
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(
+        data_path=args.data_path, 
+        db_path=args.db_path,
+        threads=args.threads,
+        memory_limit=args.memory_limit
+    )

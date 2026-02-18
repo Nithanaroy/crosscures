@@ -24,6 +24,7 @@ Prerequisites:
 import duckdb
 import pandas as pd
 import os
+import argparse
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -32,8 +33,8 @@ import json
 
 warnings.filterwarnings('ignore')
 
-# Path to DuckDB database
-DB_PATH = Path(__file__).parent / "data" / "patient_data.duckdb"
+# Default path to DuckDB database
+DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "patient_data.duckdb"
 
 
 class PatientLongitudinalData:
@@ -42,7 +43,7 @@ class PatientLongitudinalData:
     Uses DuckDB for fast, memory-efficient queries.
     """
     
-    def __init__(self, db_path: Path = DB_PATH):
+    def __init__(self, db_path: Path = DEFAULT_DB_PATH):
         """
         Initialize with path to DuckDB database.
         
@@ -626,27 +627,83 @@ class PatientLongitudinalData:
         return "\n".join(report)
 
 
-def main():
+def main(db_path: Path = DEFAULT_DB_PATH, person_id: int = None, output_dir: str = None):
     """Main function to demonstrate the longitudinal data extraction."""
     
     print("Patient Longitudinal Data Constructor (DuckDB Backend)")
     print("=" * 55 + "\n")
     
     # Initialize the extractor
-    with PatientLongitudinalData() as extractor:
+    with PatientLongitudinalData(db_path=db_path) as extractor:
         # List some patients
         print("Available patients (first 10):")
         patients = extractor.list_patients(10)
         print(patients.to_string(index=False))
         
-        # Get the first patient ID for demonstration
-        if len(patients) > 0:
-            sample_patient_id = patients.iloc[0]['person_id']
-            
+        # Use provided person_id or default to first patient
+        if person_id is None and len(patients) > 0:
+            person_id = patients.iloc[0]['person_id']
+        
+        if person_id is not None:
             # Generate and print summary report
-            report = extractor.get_patient_summary_report(sample_patient_id)
+            report = extractor.get_patient_summary_report(person_id)
             print(report)
+            
+            # Export if output directory specified
+            if output_dir:
+                output_path = extractor.export_patient_record(person_id, output_dir)
+                if output_path:
+                    print(f"\n✅ Complete record exported to: {output_path}")
+
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Extract longitudinal patient data from OMOP CDM DuckDB database.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--db-path", "-d",
+        type=Path,
+        default=DEFAULT_DB_PATH,
+        help="Path to DuckDB database file"
+    )
+    parser.add_argument(
+        "--person-id", "-p",
+        type=int,
+        default=None,
+        help="Patient person_id to extract (default: first patient in database)"
+    )
+    parser.add_argument(
+        "--output-dir", "-o",
+        type=str,
+        default=None,
+        help="Directory to export patient record files (JSON/CSV)"
+    )
+    parser.add_argument(
+        "--list-patients", "-l",
+        action="store_true",
+        help="List available patients and exit"
+    )
+    parser.add_argument(
+        "--search-condition", "-s",
+        type=str,
+        default=None,
+        help="Search for patients with a specific condition (partial match)"
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    
+    if args.list_patients:
+        with PatientLongitudinalData(db_path=args.db_path) as extractor:
+            print("Available patients:")
+            print(extractor.list_patients(50).to_string(index=False))
+    elif args.search_condition:
+        with PatientLongitudinalData(db_path=args.db_path) as extractor:
+            print(f"Patients with condition matching '{args.search_condition}':")
+            print(extractor.search_patients_by_condition(args.search_condition, limit=20).to_string(index=False))
+    else:
+        main(db_path=args.db_path, person_id=args.person_id, output_dir=args.output_dir)

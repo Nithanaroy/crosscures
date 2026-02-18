@@ -1,10 +1,11 @@
 [project]
 name = "crosscures"
 version = "0.1.0"
-description = "Add your description here"
+description = "EHR data summarizer with Epic FHIR integration"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.4.4",
     "pandas>=3.0.0",
+    "httpx>=0.27.0",
 ]
