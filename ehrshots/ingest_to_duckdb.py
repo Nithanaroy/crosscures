@@ -89,7 +89,7 @@ def get_table_name(csv_path: Path) -> str:
     return csv_path.stem.lower()
 
 
-def format_size(size_bytes: int) -> str:
+def format_size(size_bytes: float) -> str:
     """Format bytes to human-readable size."""
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024:
@@ -134,7 +134,8 @@ def ingest_csv_to_duckdb(conn: duckdb.DuckDBPyConnection, csv_path: Path) -> Tup
     """)
     
     # Get row count
-    row_count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+    result = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+    row_count = result[0] if result else 0
     
     elapsed = time.time() - start_time
     print(f"[OK] {row_count:,} rows ({format_time(elapsed)})")
@@ -301,7 +302,7 @@ def create_longitudinal_views(conn: duckdb.DuckDBPyConnection):
     print("  [OK] Created view: concept_lookup")
 
 
-def print_database_stats(conn: duckdb.DuckDBPyConnection):
+def print_database_stats(conn: duckdb.DuckDBPyConnection, db_path: Path):
     """Print summary statistics about the database."""
     
     print("\n" + "="*60)
@@ -321,7 +322,8 @@ def print_database_stats(conn: duckdb.DuckDBPyConnection):
     print("-"*47)
     
     for (table_name,) in tables:
-        count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        result = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+        count = result[0] if result else 0
         total_rows += count
         print(f"{table_name:<30} {count:>15,}")
     
@@ -329,8 +331,8 @@ def print_database_stats(conn: duckdb.DuckDBPyConnection):
     print(f"{'TOTAL':<30} {total_rows:>15,}")
     
     # Database file size
-    if DB_PATH.exists():
-        db_size = DB_PATH.stat().st_size
+    if db_path.exists():
+        db_size = db_path.stat().st_size
         print(f"\n[SIZE] Database file size: {format_size(db_size)}")
 
 
@@ -458,7 +460,7 @@ def main(data_path: Path = DEFAULT_DATA_PATH, db_path: Path = DEFAULT_DB_PATH,
     print("  [OK] Analysis complete")
     
     # Print statistics
-    print_database_stats(conn)
+    print_database_stats(conn, db_path)
     
     # Print sample queries
     print_sample_queries()

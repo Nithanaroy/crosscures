@@ -61,8 +61,8 @@ class PatientLongitudinalData:
                     f"DuckDB database not found at {self.db_path}. "
                     "Please run 'python ingest_to_duckdb.py' first."
                 )
-            self._conn = duckdb.connect(str(self.db_path), read_only=True)
-        return self._conn
+            self._conn = duckdb.connect(str(self.db_path), read_only=True)  # type: ignore[assignment]
+        return self._conn  # type: ignore[return-value]
     
     def close(self):
         """Close the database connection."""
@@ -627,7 +627,7 @@ class PatientLongitudinalData:
         return "\n".join(report)
 
 
-def main(db_path: Path = DEFAULT_DB_PATH, person_id: int = None, output_dir: str = None):
+def main(db_path: Path = DEFAULT_DB_PATH, person_id: int = None, output_dir: str = None):  # type: ignore[assignment]
     """Main function to demonstrate the longitudinal data extraction."""
     
     print("Patient Longitudinal Data Constructor (DuckDB Backend)")
