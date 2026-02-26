@@ -557,12 +557,13 @@ class PatientLongitudinalData:
             LIMIT {limit}
         """, [condition_name]).df()
     
-    def get_patient_summary_report(self, person_id: int) -> str:
+    def get_patient_summary_report(self, person_id: int, complete: bool = False) -> str:
         """
         Generate a human-readable summary report for a patient.
         
         Args:
             person_id: The patient's person_id
+            complete: If True, include all events; if False, show only last 10 events
             
         Returns:
             Formatted string report
@@ -613,21 +614,28 @@ class PatientLongitudinalData:
             }.get(event_type, '*')
             report.append(f"    {label} {event_type.capitalize()}: {count}")
         
-        # Recent events
+        # Events section
         if len(timeline) > 0:
-            report.append("\n[RECENT EVENTS] (Last 10)")
-            report.append("-"*40)
-            recent = timeline.tail(10)
-            for _, event in recent.iterrows():
-                date_str = str(event['date'])[:10] if pd.notna(event['date']) else 'Unknown'
-                report.append(f"  [{date_str}] {event['event_type'].upper()}: {event['description']}")
+            if complete:
+                report.append(f"\n[ALL EVENTS] ({len(timeline)} total)")
+                report.append("-"*40)
+                for _, event in timeline.iterrows():
+                    date_str = str(event['date'])[:10] if pd.notna(event['date']) else 'Unknown'
+                    report.append(f"  [{date_str}] {event['event_type'].upper()}: {event['description']}")
+            else:
+                report.append("\n[RECENT EVENTS] (Last 10)")
+                report.append("-"*40)
+                recent = timeline.tail(10)
+                for _, event in recent.iterrows():
+                    date_str = str(event['date'])[:10] if pd.notna(event['date']) else 'Unknown'
+                    report.append(f"  [{date_str}] {event['event_type'].upper()}: {event['description']}")
         
         report.append("\n" + "="*70)
         
         return "\n".join(report)
 
 
-def main(db_path: Path = DEFAULT_DB_PATH, person_id: int = None, output_dir: str = None):  # type: ignore[assignment]
+def main(db_path: Path = DEFAULT_DB_PATH, person_id: int = None, output_dir: str = None, complete: bool = False, output_file: str = None):  # type: ignore[assignment]
     """Main function to demonstrate the longitudinal data extraction."""
     
     print("Patient Longitudinal Data Constructor (DuckDB Backend)")
@@ -646,8 +654,16 @@ def main(db_path: Path = DEFAULT_DB_PATH, person_id: int = None, output_dir: str
         
         if person_id is not None:
             # Generate and print summary report
-            report = extractor.get_patient_summary_report(person_id)
-            print(report)
+            report = extractor.get_patient_summary_report(person_id, complete=complete)
+            if not complete:
+                # too long to print the entire report to stdout
+                print(report)
+            
+            # Save to output file if specified
+            if output_file:
+                with open(output_file, 'w') as f:
+                    f.write(report)
+                print(f"\n[OK] Report saved to: {output_file}")
             
             # Export if output directory specified
             if output_dir:
@@ -681,6 +697,17 @@ def parse_args():
         help="Directory to export patient record files (JSON/CSV)"
     )
     parser.add_argument(
+        "--output", "-f",
+        type=str,
+        default=None,
+        help="Output file to save the patient summary report (txt format)"
+    )
+    parser.add_argument(
+        "--complete",
+        action="store_true",
+        help="Print all events instead of just the last 10"
+    )
+    parser.add_argument(
         "--list-patients", "-l",
         action="store_true",
         help="List available patients and exit"
@@ -697,6 +724,12 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     
+    # Validate that --output is provided when --complete is used
+    if args.complete and not args.output:
+        print("Error: --output flag is required when --complete flag is used")
+        print("Usage: python patient_longitudinal_data.py --person-id <id> --complete --output <file>")
+        exit(1)
+    
     if args.list_patients:
         with PatientLongitudinalData(db_path=args.db_path) as extractor:
             print("Available patients:")
@@ -706,4 +739,4 @@ if __name__ == "__main__":
             print(f"Patients with condition matching '{args.search_condition}':")
             print(extractor.search_patients_by_condition(args.search_condition, limit=20).to_string(index=False))
     else:
-        main(db_path=args.db_path, person_id=args.person_id, output_dir=args.output_dir)
+        main(db_path=args.db_path, person_id=args.person_id, output_dir=args.output_dir, complete=args.complete, output_file=args.output)
