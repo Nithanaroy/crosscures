@@ -18,6 +18,9 @@ wheels/
 .env.local
 .env.*.local
 
+# Epic OAuth tokens (sensitive)
+.epic_tokens.json
+
 # Repo files
 data/*
 !data/.gitkeep
