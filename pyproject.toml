@@ -8,4 +8,5 @@ dependencies = [
     "duckdb>=1.4.4",
     "pandas>=3.0.0",
     "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
 ]

@@ -12,6 +12,16 @@ Documentation: https://fhir.epic.com/
 """
 
 import os
+from pathlib import Path
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    # Look for .env in project root
+    env_path = Path(__file__).parent / '.env'
+    load_dotenv(env_path)
+except ImportError:
+    pass  # python-dotenv not installed, rely on system env vars
 import httpx
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
@@ -45,17 +55,30 @@ class EpicFHIRConfig:
         "patient/DiagnosticReport.read",
     ])
     
+    # For Confidential Client authentication (client secret)
+    client_secret: Optional[str] = None
+    
     # For Backend Services (JWT auth)
     private_key_path: Optional[str] = None
     
+    # Use sandbox credentials (for development/testing)
+    use_sandbox: bool = True
+    
     @classmethod
-    def from_env(cls) -> "EpicFHIRConfig":
-        """Create config from environment variables."""
+    def from_env(cls, use_sandbox: bool = True) -> "EpicFHIRConfig":
+        """Create config from environment variables.
+        
+        Args:
+            use_sandbox: If True, use EPIC_CLIENT_ID_SANDBOX; else use EPIC_CLIENT_ID
+        """
+        client_id_key = "EPIC_CLIENT_ID_SANDBOX" if use_sandbox else "EPIC_CLIENT_ID"
         return cls(
-            client_id=os.environ.get("EPIC_CLIENT_ID", ""),
+            client_id=os.environ.get(client_id_key, os.environ.get("EPIC_CLIENT_ID", "")),
+            client_secret=os.environ.get("EPIC_CLIENT_SECRET"),
             base_url=os.environ.get("EPIC_FHIR_BASE_URL", EpicEnvironment.SANDBOX.value),
             redirect_uri=os.environ.get("EPIC_REDIRECT_URI", "http://localhost:8080/callback"),
             private_key_path=os.environ.get("EPIC_PRIVATE_KEY_PATH"),
+            use_sandbox=use_sandbox,
         )
 
 

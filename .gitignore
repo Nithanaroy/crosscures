@@ -13,6 +13,11 @@ wheels/
 # OS cache
 .DS_Store
 
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
 # Repo files
 data/*
 !data/.gitkeep
