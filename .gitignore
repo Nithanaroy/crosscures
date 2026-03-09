@@ -24,3 +24,4 @@ wheels/
 # Repo files
 data/*
 !data/.gitkeep
+misc/*
