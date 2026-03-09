@@ -109,7 +109,7 @@ def get_patient_notes(
         else:
             safe_date = _safe_filename(str(note_date))
             safe_title = _safe_filename(str(note_title or "untitled"))
-            filename = f"{note_id}_{safe_date}_{safe_title}.txt"
+            filename = f"{safe_date}_{note_id}_{safe_title}.txt"
             out_file = patient_dir / filename
             out_file.write_text(content, encoding="utf-8")
             print(f"[OK] {out_file}")
