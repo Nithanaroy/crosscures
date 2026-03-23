@@ -1,0 +1,181 @@
+.tree-panel {
+    width: 300px;
+    flex-shrink: 0;
+    border-left: 2px solid #f0f0f0;
+    padding-left: 20px;
+    display: none;
+}
+
+.tree-panel.open {
+    display: block;
+}
+
+.tree-toggle-btn {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: #667eea;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.tree-toggle-btn:hover {
+    background: #f5f7ff;
+    border-color: #667eea;
+}
+
+.tree-panel-header {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tree-section {
+    margin-bottom: 14px;
+}
+
+.tree-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #999;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #eee;
+}
+
+.tree-node {
+    display: flex;
+    align-items: flex-start;
+    padding: 5px 8px;
+    margin-bottom: 2px;
+    border-radius: 5px;
+    font-size: 12px;
+    line-height: 1.4;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.tree-node-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 8px;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.tree-node-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.tree-node-label {
+    color: #333;
+}
+
+.tree-node-answer {
+    font-size: 11px;
+    color: #667eea;
+    font-weight: 600;
+}
+
+.tree-node-skip-reason {
+    font-size: 10px;
+    color: #999;
+    font-style: italic;
+}
+
+.tree-branch-label {
+    font-size: 10px;
+    color: #aaa;
+    margin-left: 26px;
+    margin-bottom: 2px;
+    font-style: italic;
+}
+
+/* Node states */
+.tree-node.answered {
+    background: #f0faf0;
+}
+
+.tree-node.answered .tree-node-icon {
+    background: #4caf50;
+    color: white;
+}
+
+.tree-node.current {
+    background: #eef2ff;
+    border: 1px solid #667eea;
+}
+
+.tree-node.current .tree-node-icon {
+    background: #667eea;
+    color: white;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(102,126,234,0); }
+}
+
+.tree-node.skipped {
+    background: #fafafa;
+    opacity: 0.6;
+}
+
+.tree-node.skipped .tree-node-icon {
+    background: #e0e0e0;
+    color: #999;
+}
+
+.tree-node.skipped .tree-node-label {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.tree-node.upcoming {
+    opacity: 0.5;
+}
+
+.tree-node.upcoming .tree-node-icon {
+    background: white;
+    border: 2px solid #ddd;
+}
+
+.tree-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.tree-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #888;
+}
+
+.tree-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
