@@ -55,11 +55,25 @@ class InitializeCheckinRequest(BaseModel):
     patient_id: str
 
 
+class QuestionTreeNode(BaseModel):
+    question_id: str
+    question_text: str
+    condition_tag: str
+    question_type: str
+    depends_on_question_id: Optional[str] = None
+    depends_on_response: Optional[str] = None
+    trigger_label: Optional[str] = None
+
+
 class InitializeCheckinResponse(BaseModel):
     session_id: str
     patient_name: str
+    patient_id: str
+    conditions: list[str]
+    medications: list[str]
     total_questions: int
     first_question: CheckinQuestion
+    question_tree: list[QuestionTreeNode]
 
 
 class SubmitResponseRequest(BaseModel):
@@ -71,6 +85,7 @@ class SubmitResponseResponse(BaseModel):
     message: str
     next_question: Optional[CheckinQuestion] = None
     is_complete: bool = False
+    skipped_questions: list[str] = []
 
 
 class CompleteCheckinRequest(BaseModel):
@@ -216,11 +231,18 @@ async def initialize_checkin(request: InitializeCheckinRequest):
     session.current_question_index = actual_index
     session_store.update_session(session_id, {"session": session})
     
+    # Build question tree for the decision tree panel
+    question_tree = _build_question_tree(questions)
+    
     return InitializeCheckinResponse(
         session_id=session_id,
         patient_name=patient.name,
+        patient_id=patient.patient_id,
+        conditions=[c.condition_name for c in patient.conditions],
+        medications=patient.current_medications,
         total_questions=len(questions),
         first_question=first_question,
+        question_tree=question_tree,
     )
 
 
@@ -248,6 +270,18 @@ async def submit_response(request: SubmitResponseRequest):
         next_index
     )
     
+    # Collect skipped question IDs (those between next_index and actual_index)
+    skipped = []
+    if next_question is not None:
+        for i in range(next_index, actual_index):
+            skipped.append(session.all_questions[i].question_id)
+    else:
+        # Questionnaire is done - remaining questions with unmet deps are skipped
+        for i in range(next_index, len(session.all_questions)):
+            q = session.all_questions[i]
+            if q.depends_on_question_id:
+                skipped.append(q.question_id)
+    
     is_complete = next_question is None
     if not is_complete:
         session.current_question_index = actual_index
@@ -258,6 +292,7 @@ async def submit_response(request: SubmitResponseRequest):
         message="Response recorded" if not is_complete else "Questionnaire complete",
         next_question=next_question,
         is_complete=is_complete,
+        skipped_questions=skipped,
     )
 
 
@@ -340,6 +375,40 @@ async def get_summary(session_id: str):
         raise HTTPException(status_code=400, detail="Check-in not completed")
     
     return summary
+
+
+# ============================================================================
+# Helpers
+# ============================================================================
+
+def _build_question_tree(questions: list[CheckinQuestion]) -> list[QuestionTreeNode]:
+    """Build question tree nodes for the frontend decision tree panel"""
+    nodes = []
+    for q in questions:
+        trigger_label = None
+        if q.depends_on_question_id:
+            meta = q.metadata or {}
+            if meta.get("trigger_type") == "threshold":
+                op = meta.get("threshold_operator", ">=")
+                val = meta.get("threshold_value", "?")
+                trigger_label = f"if {op} {val}"
+            elif q.depends_on_response is True:
+                trigger_label = "if Yes"
+            elif q.depends_on_response is False:
+                trigger_label = "if No"
+            else:
+                trigger_label = f"if {q.depends_on_response}"
+
+        nodes.append(QuestionTreeNode(
+            question_id=q.question_id,
+            question_text=q.question_text,
+            condition_tag=q.condition_tag,
+            question_type=q.question_type.value,
+            depends_on_question_id=q.depends_on_question_id,
+            depends_on_response=str(q.depends_on_response) if q.depends_on_response is not None else None,
+            trigger_label=trigger_label,
+        ))
+    return nodes
 
 
 # ============================================================================

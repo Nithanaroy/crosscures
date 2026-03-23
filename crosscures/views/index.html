@@ -25,7 +25,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+            max-width: 1000px;
             width: 100%;
         }
         
@@ -88,6 +88,264 @@
         .patient-conditions {
             font-size: 13px;
             color: #666;
+        }
+        
+        /* Patient Info Banner */
+        .patient-banner {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
+            border: 1px solid #c5d0f0;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        
+        .patient-banner-left {
+            flex: 1;
+        }
+        
+        .patient-banner-name {
+            font-weight: 700;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .patient-banner-id {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+        
+        .patient-banner-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .condition-pill {
+            background: #667eea;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        
+        .no-conditions-pill {
+            background: #e0e0e0;
+            color: #666;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        
+        .patient-banner-meds {
+            font-size: 12px;
+            color: #555;
+            margin-top: 6px;
+        }
+        
+        .patient-banner-meds strong {
+            color: #444;
+        }
+        
+        /* Questionnaire Layout (side panel) */
+        .questionnaire-layout {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .questionnaire-main {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        /* Decision Tree Side Panel */
+        .tree-panel {
+            width: 300px;
+            flex-shrink: 0;
+            border-left: 2px solid #f0f0f0;
+            padding-left: 20px;
+            display: none;
+        }
+        
+        .tree-panel.open {
+            display: block;
+        }
+        
+        .tree-toggle-btn {
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .tree-toggle-btn:hover {
+            background: #f5f7ff;
+            border-color: #667eea;
+        }
+        
+        .tree-panel-header {
+            font-size: 13px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tree-section {
+            margin-bottom: 14px;
+        }
+        
+        .tree-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #999;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .tree-node {
+            display: flex;
+            align-items: flex-start;
+            padding: 5px 8px;
+            margin-bottom: 2px;
+            border-radius: 5px;
+            font-size: 12px;
+            line-height: 1.4;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .tree-node-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-right: 8px;
+            margin-top: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        
+        .tree-node-text {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .tree-node-label {
+            color: #333;
+        }
+        
+        .tree-node-answer {
+            font-size: 11px;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tree-node-skip-reason {
+            font-size: 10px;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .tree-branch-label {
+            font-size: 10px;
+            color: #aaa;
+            margin-left: 26px;
+            margin-bottom: 2px;
+            font-style: italic;
+        }
+        
+        /* Node states */
+        .tree-node.answered {
+            background: #f0faf0;
+        }
+        
+        .tree-node.answered .tree-node-icon {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .tree-node.current {
+            background: #eef2ff;
+            border: 1px solid #667eea;
+        }
+        
+        .tree-node.current .tree-node-icon {
+            background: #667eea;
+            color: white;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(102,126,234,0); }
+        }
+        
+        .tree-node.skipped {
+            background: #fafafa;
+            opacity: 0.6;
+        }
+        
+        .tree-node.skipped .tree-node-icon {
+            background: #e0e0e0;
+            color: #999;
+        }
+        
+        .tree-node.skipped .tree-node-label {
+            text-decoration: line-through;
+            color: #999;
+        }
+        
+        .tree-node.upcoming {
+            opacity: 0.5;
+        }
+        
+        .tree-node.upcoming .tree-node-icon {
+            background: white;
+            border: 2px solid #ddd;
+        }
+        
+        .tree-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+        
+        .tree-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #888;
+        }
+        
+        .tree-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
         }
         
         /* Questionnaire */
@@ -354,23 +612,52 @@
             
             <!-- Questionnaire Section -->
             <div id="questionnaireSection" class="section">
-                <div class="question-header">
-                    <div>
-                        <h2 id="questionNumber"></h2>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill"></div>
-                        </div>
+                <!-- Patient Info Banner -->
+                <div class="patient-banner" id="patientBanner" style="display:none;">
+                    <div class="patient-banner-left">
+                        <div class="patient-banner-name" id="bannerName"></div>
+                        <div class="patient-banner-id" id="bannerId"></div>
+                        <div class="patient-banner-tags" id="bannerConditions"></div>
+                        <div class="patient-banner-meds" id="bannerMeds"></div>
                     </div>
+                    <button class="tree-toggle-btn" id="treeToggleBtn" onclick="toggleTreePanel()">Show Tree</button>
                 </div>
                 
-                <div class="question-text" id="questionText"></div>
-                
-                <div id="answerContainer"></div>
-                
-                <div class="navigation">
-                    <button class="btn secondary" onclick="backToPatients()">Back</button>
-                    <button class="btn primary" id="nextBtn" onclick="submitResponse()" style="display: none;">Next</button>
-                    <button class="btn primary" id="completeBtn" onclick="completeQuestionnaire()" style="display: none;">Complete</button>
+                <div class="questionnaire-layout">
+                    <div class="questionnaire-main">
+                        <div class="question-header">
+                            <div>
+                                <h2 id="questionNumber"></h2>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="question-text" id="questionText"></div>
+                        
+                        <div id="answerContainer"></div>
+                        
+                        <div class="navigation">
+                            <button class="btn secondary" onclick="backToPatients()">Back</button>
+                            <button class="btn primary" id="nextBtn" onclick="submitResponse()" style="display: none;">Next</button>
+                            <button class="btn primary" id="completeBtn" onclick="completeQuestionnaire()" style="display: none;">Complete</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Decision Tree Side Panel -->
+                    <div class="tree-panel" id="treePanel">
+                        <div class="tree-panel-header">
+                            <span>Decision Tree</span>
+                        </div>
+                        <div id="treeContent"></div>
+                        <div class="tree-legend">
+                            <div class="tree-legend-item"><div class="tree-legend-dot" style="background:#4caf50;"></div> Answered</div>
+                            <div class="tree-legend-item"><div class="tree-legend-dot" style="background:#667eea;"></div> Current</div>
+                            <div class="tree-legend-item"><div class="tree-legend-dot" style="background:#e0e0e0;"></div> Skipped</div>
+                            <div class="tree-legend-item"><div class="tree-legend-dot" style="background:white;border:2px solid #ddd;"></div> Upcoming</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -399,6 +686,10 @@
             allResponses: {},
             answeredCount: 0,
             submitting: false,
+            questionTree: [],
+            answeredQuestions: {},  // question_id -> response_value
+            skippedQuestions: new Set(),
+            treePanelOpen: false,
         };
         
         // =====================================================================
@@ -476,12 +767,20 @@
                 state.currentSessionId = data.session_id;
                 state.sessionData = {
                     patientName: data.patient_name,
+                    patientId: data.patient_id,
+                    conditions: data.conditions || [],
+                    medications: data.medications || [],
                     totalQuestions: data.total_questions,
                 };
                 state.currentQuestion = data.first_question;
                 state.allResponses = {};
                 state.answeredCount = 0;
+                state.questionTree = data.question_tree || [];
+                state.answeredQuestions = {};
+                state.skippedQuestions = new Set();
                 
+                renderPatientBanner();
+                renderTree();
                 displayQuestion();
                 switchSection('questionnaireSection');
             } catch (error) {
@@ -609,12 +908,30 @@
                 });
                 const data = await resp.json();
                 
+                // Track answered question for tree
+                state.answeredQuestions[state.currentQuestion.question_id] = responseValue;
+                
+                // Track skipped questions for tree
+                if (data.skipped_questions) {
+                    data.skipped_questions.forEach(qId => state.skippedQuestions.add(qId));
+                }
+                
                 state.answeredCount++;
                 state.currentQuestion = data.next_question;
                 
                 if (data.is_complete) {
+                    // Mark remaining dependent questions as skipped
+                    state.questionTree.forEach(node => {
+                        if (node.depends_on_question_id &&
+                            !(node.question_id in state.answeredQuestions) &&
+                            !state.skippedQuestions.has(node.question_id)) {
+                            state.skippedQuestions.add(node.question_id);
+                        }
+                    });
+                    renderTree();
                     await completeQuestionnaire();
                 } else {
+                    renderTree();
                     displayQuestion();
                 }
             } catch (error) {
@@ -671,6 +988,130 @@
         }
         
         // =====================================================================
+        // Patient Banner
+        // =====================================================================
+        function renderPatientBanner() {
+            const banner = document.getElementById('patientBanner');
+            const sd = state.sessionData;
+            
+            document.getElementById('bannerName').textContent = sd.patientName;
+            document.getElementById('bannerId').textContent = 'ID: ' + sd.patientId;
+            
+            const tagsDiv = document.getElementById('bannerConditions');
+            if (sd.conditions.length > 0) {
+                tagsDiv.innerHTML = sd.conditions.map(c => 
+                    '<span class="condition-pill">' + c + '</span>'
+                ).join('');
+            } else {
+                tagsDiv.innerHTML = '<span class="no-conditions-pill">No active conditions</span>';
+            }
+            
+            const medsDiv = document.getElementById('bannerMeds');
+            if (sd.medications.length > 0) {
+                medsDiv.innerHTML = '<strong>Meds:</strong> ' + sd.medications.join(', ');
+            } else {
+                medsDiv.innerHTML = '<strong>Meds:</strong> None';
+            }
+            
+            banner.style.display = 'flex';
+        }
+        
+        // =====================================================================
+        // Decision Tree Panel
+        // =====================================================================
+        function toggleTreePanel() {
+            state.treePanelOpen = !state.treePanelOpen;
+            const panel = document.getElementById('treePanel');
+            const btn = document.getElementById('treeToggleBtn');
+            if (state.treePanelOpen) {
+                panel.classList.add('open');
+                btn.textContent = 'Hide Tree';
+            } else {
+                panel.classList.remove('open');
+                btn.textContent = 'Show Tree';
+            }
+        }
+        
+        function renderTree() {
+            const container = document.getElementById('treeContent');
+            if (!state.questionTree.length) {
+                container.innerHTML = '<div style="color:#999;font-size:12px;">No tree data</div>';
+                return;
+            }
+            
+            // Group by condition_tag
+            const tagOrder = ['base', 'diabetes', 'hypertension', 'cardiac', 'respiratory'];
+            const tagLabels = {
+                base: 'Base Questions',
+                diabetes: 'Diabetes',
+                hypertension: 'Hypertension',
+                cardiac: 'Cardiac',
+                respiratory: 'Respiratory',
+            };
+            
+            const groups = {};
+            state.questionTree.forEach(node => {
+                const tag = node.condition_tag || 'base';
+                if (!groups[tag]) groups[tag] = [];
+                groups[tag].push(node);
+            });
+            
+            let html = '';
+            tagOrder.forEach(tag => {
+                if (!groups[tag]) return;
+                html += '<div class="tree-section">';
+                html += '<div class="tree-section-label">' + (tagLabels[tag] || tag) + '</div>';
+                groups[tag].forEach(node => {
+                    const nodeState = getNodeState(node);
+                    
+                    // Show branch label if this is a dependent question
+                    if (node.depends_on_question_id && node.trigger_label) {
+                        html += '<div class="tree-branch-label">' + node.trigger_label + '</div>';
+                    }
+                    
+                    html += '<div class="tree-node ' + nodeState + '">';
+                    html += '<div class="tree-node-icon">' + getNodeIcon(nodeState) + '</div>';
+                    html += '<div class="tree-node-text">';
+                    html += '<div class="tree-node-label">' + truncate(node.question_text, 50) + '</div>';
+                    
+                    if (nodeState === 'answered') {
+                        const val = state.answeredQuestions[node.question_id];
+                        html += '<div class="tree-node-answer">' + formatAnswer(val) + '</div>';
+                    } else if (nodeState === 'skipped') {
+                        const parentId = node.depends_on_question_id;
+                        html += '<div class="tree-node-skip-reason">Skipped: condition not met</div>';
+                    }
+                    
+                    html += '</div></div>';
+                });
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function getNodeState(node) {
+            if (node.question_id in state.answeredQuestions) return 'answered';
+            if (state.skippedQuestions.has(node.question_id)) return 'skipped';
+            if (state.currentQuestion && node.question_id === state.currentQuestion.question_id) return 'current';
+            return 'upcoming';
+        }
+        
+        function getNodeIcon(nodeState) {
+            switch (nodeState) {
+                case 'answered': return 'OK';
+                case 'current': return '?';
+                case 'skipped': return '--';
+                case 'upcoming': return '';
+                default: return '';
+            }
+        }
+        
+        function truncate(text, max) {
+            return text.length > max ? text.substring(0, max) + '...' : text;
+        }
+        
+        // =====================================================================
         // Navigation
         // =====================================================================
         function updateNavigationButtons() {
@@ -697,6 +1138,13 @@
             state.currentQuestion = null;
             state.allResponses = {};
             state.answeredCount = 0;
+            state.questionTree = [];
+            state.answeredQuestions = {};
+            state.skippedQuestions = new Set();
+            state.treePanelOpen = false;
+            document.getElementById('patientBanner').style.display = 'none';
+            document.getElementById('treePanel').classList.remove('open');
+            document.getElementById('treeToggleBtn').textContent = 'Show Tree';
             switchSection('patientSection');
         }
         
