@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "medalign"
+version = "0.1.0"
+description = "MedAlign OMOP CDM ingestion and patient record query tools"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.4.4",
+    "pandas>=3.0.0",
+]

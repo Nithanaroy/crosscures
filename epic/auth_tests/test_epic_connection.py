@@ -22,10 +22,12 @@ from threading import Thread
 from pathlib import Path
 from datetime import datetime, timedelta
 
+from constants import PROJECT_HOME
+
 # Load environment variables
 try:
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).parent / '.env')
+    load_dotenv(PROJECT_HOME / '.env')
 except ImportError:
     print("[WARN] python-dotenv not installed, using system env vars")
 
@@ -33,7 +35,8 @@ import httpx
 
 # Configuration from environment
 CLIENT_ID = os.environ.get("EPIC_CLIENT_ID_SANDBOX", "")
-CLIENT_SECRET = os.environ.get("EPIC_CLIENT_SECRET", "")
+# Use sandbox-specific secret if available, fall back to general secret
+CLIENT_SECRET = os.environ.get("EPIC_CLIENT_SECRET_SANDBOX") or os.environ.get("EPIC_CLIENT_SECRET", "")
 REDIRECT_URI = os.environ.get("EPIC_REDIRECT_URI", "http://localhost:8080/callback")
 FHIR_BASE_URL = os.environ.get("EPIC_FHIR_BASE_URL", "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4")
 
@@ -224,6 +227,9 @@ def exchange_code_for_token(code):
     if CLIENT_SECRET:
         auth = (CLIENT_ID, CLIENT_SECRET)
         print("[INFO] Using confidential client authentication (Basic auth)")
+        print(f"[DEBUG] Client ID: {CLIENT_ID}")
+        print(f"[DEBUG] Client Secret length: {len(CLIENT_SECRET)} chars")
+        print(f"[DEBUG] Client Secret prefix: {CLIENT_SECRET[:10]}...")
     else:
         # Public client - include client_id in form data
         data["client_id"] = CLIENT_ID
@@ -240,7 +246,9 @@ def exchange_code_for_token(code):
         
         if response.status_code != 200:
             print(f"[ERROR] Token exchange failed: {response.status_code}")
-            print(f"Response: {response.text}")
+            print(f"[ERROR] Response: {response.text}")
+            print(f"[DEBUG] Request data: {data}")
+            print(f"[DEBUG] Using client ID: {CLIENT_ID}")
             return None
         
         return response.json()
@@ -343,8 +351,14 @@ def main():
         print("[ERROR] EPIC_CLIENT_ID_SANDBOX not set in .env file")
         sys.exit(1)
     
+    if not CLIENT_SECRET:
+        print("[ERROR] No client secret found!")
+        print("[ERROR] Set either EPIC_CLIENT_SECRET_SANDBOX or EPIC_CLIENT_SECRET in .env")
+        sys.exit(1)
+    
     print(f"[INFO] Client ID: {CLIENT_ID[:8]}...{CLIENT_ID[-8:]}")
     print(f"[INFO] Full Client ID: {CLIENT_ID}")
+    print(f"[INFO] Client Secret: {CLIENT_SECRET[:10]}... ({len(CLIENT_SECRET)} chars)")
     print(f"[INFO] Redirect URI: {REDIRECT_URI}")
     print(f"[INFO] FHIR Base URL: {FHIR_BASE_URL}")
     print(f"[INFO] Auth Endpoint: {AUTH_ENDPOINT}")

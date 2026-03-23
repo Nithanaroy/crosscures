@@ -1,0 +1,13 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ehrshots"
+version = "0.1.0"
+description = "OMOP CDM data ingestion and patient record processing"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.4.4",
+    "pandas>=3.0.0",
+]

@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stage 1 MVP - Adaptive Questionnaire Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+            min-height: 300px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        /* Patient Selection */
+        .patient-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        .patient-card {
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .patient-card:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+        
+        .patient-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .patient-conditions {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        /* Questionnaire */
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .question-header h2 {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+        
+        .question-text {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .question-type-scale {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .scale-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .scale-btn:hover {
+            border-color: #667eea;
+        }
+        
+        .scale-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .yes-no-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+        
+        .btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            width: 100%;
+        }
+        
+        .btn.primary:hover {
+            opacity: 0.9;
+        }
+        
+        .btn.secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .question-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .option-btn {
+            padding: 12px 16px;
+            text-align: left;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .option-btn:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+        }
+        
+        .option-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .text-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .navigation {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        
+        .navigation .btn {
+            flex: 1;
+        }
+        
+        /* Summary */
+        .summary-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .response-item {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+        
+        .response-question {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .response-answer {
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .status-message {
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+        
+        .data-source-info {
+            background: #f0f0f0;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid #c33;
+        }
+        
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            border-left: 4px solid #3c3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Pre-Visit Health Check-In</h1>
+            <p>Adaptive Questionnaire Demo - Stage 1 MVP</p>
+        </div>
+        
+        <div class="content">
+            <!-- Patient Selection Section -->
+            <div id="patientSection" class="section active">
+                <h2 style="margin-bottom: 20px;">Select a Patient</h2>
+                <div class="data-source-info" id="dataSourceInfo">
+                    Loading data source...
+                </div>
+                <div id="patientList" class="patient-list">
+                    <div class="loading"><div class="spinner"></div> Loading patients...</div>
+                </div>
+            </div>
+            
+            <!-- Questionnaire Section -->
+            <div id="questionnaireSection" class="section">
+                <div class="question-header">
+                    <div>
+                        <h2 id="questionNumber"></h2>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="question-text" id="questionText"></div>
+                
+                <div id="answerContainer"></div>
+                
+                <div class="navigation">
+                    <button class="btn secondary" onclick="backToPatients()">Back</button>
+                    <button class="btn primary" id="nextBtn" onclick="submitResponse()" style="display: none;">Next</button>
+                    <button class="btn primary" id="completeBtn" onclick="completeQuestionnaire()" style="display: none;">Complete</button>
+                </div>
+            </div>
+            
+            <!-- Summary Section -->
+            <div id="summarySection" class="section">
+                <h2 style="margin-bottom: 20px;">Check-In Complete</h2>
+                <div class="success" id="summaryMessage"></div>
+                <div class="summary-content" id="summaryContent"></div>
+                <div class="navigation" style="margin-top: 20px;">
+                    <button class="btn secondary" onclick="startOver()">Start Over</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // =====================================================================
+        // State Management
+        // =====================================================================
+        const API_BASE_URL = 'http://localhost:8000';
+        let state = {
+            currentPatient: null,
+            currentSessionId: null,
+            currentQuestion: null,
+            sessionData: null,
+            allResponses: {},
+            answeredCount: 0,
+            submitting: false,
+        };
+        
+        // =====================================================================
+        // Initialization
+        // =====================================================================
+        async function init() {
+            await loadDataSourceInfo();
+            await loadPatients();
+        }
+        
+        async function loadDataSourceInfo() {
+            try {
+                const resp = await fetch(`${API_BASE_URL}/data-source`);
+                const data = await resp.json();
+                const infoDiv = document.getElementById('dataSourceInfo');
+                infoDiv.textContent = `Data Source: ${data.provider_type.toUpperCase()} - ${data.description}`;
+            } catch (error) {
+                console.error('Error loading data source:', error);
+            }
+        }
+        
+        async function loadPatients() {
+            try {
+                const resp = await fetch(`${API_BASE_URL}/patients`);
+                const patients = await resp.json();
+                
+                const patientList = document.getElementById('patientList');
+                patientList.innerHTML = '';
+                
+                patients.forEach(patient => {
+                    const card = document.createElement('div');
+                    card.className = 'patient-card';
+                    card.onclick = () => selectPatient(patient);
+                    
+                    const conditions = patient.conditions.length > 0
+                        ? patient.conditions.join(', ')
+                        : 'No significant conditions';
+                    
+                    card.innerHTML = `
+                        <div class="patient-name">${patient.name}</div>
+                        <div class="patient-conditions">${conditions}</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">ID: ${patient.patient_id}</div>
+                    `;
+                    
+                    patientList.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading patients:', error);
+                document.getElementById('patientList').innerHTML = `
+                    <div class="error">Error loading patients. Make sure the API is running.</div>
+                `;
+            }
+        }
+        
+        async function selectPatient(patient) {
+            if (state.submitting) return;
+            state.submitting = true;
+            state.currentPatient = patient;
+            try {
+                await initializeCheckin(patient.patient_id);
+            } finally {
+                state.submitting = false;
+            }
+        }
+        
+        async function initializeCheckin(patientId) {
+            try {
+                const resp = await fetch(`${API_BASE_URL}/checkin/initialize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: patientId })
+                });
+                const data = await resp.json();
+                
+                state.currentSessionId = data.session_id;
+                state.sessionData = {
+                    patientName: data.patient_name,
+                    totalQuestions: data.total_questions,
+                };
+                state.currentQuestion = data.first_question;
+                state.allResponses = {};
+                state.answeredCount = 0;
+                
+                displayQuestion();
+                switchSection('questionnaireSection');
+            } catch (error) {
+                console.error('Error initializing check-in:', error);
+                alert('Error starting check-in');
+            }
+        }
+        
+        // =====================================================================
+        // Question Display & Response
+        // =====================================================================
+        function displayQuestion() {
+            if (!state.currentQuestion) {
+                completeQuestionnaire();
+                return;
+            }
+            
+            const currentCount = state.answeredCount + 1;
+            const total = state.sessionData.totalQuestions;
+            
+            document.getElementById('questionNumber').textContent = `Question ${currentCount}/${total}`;
+            
+            const progress = (currentCount / total) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            document.getElementById('questionText').textContent = state.currentQuestion.question_text;
+            
+            const container = document.getElementById('answerContainer');
+            container.innerHTML = '';
+            
+            switch (state.currentQuestion.question_type) {
+                case 'yes_no':
+                    displayYesNo(container);
+                    break;
+                case 'scale_1_10':
+                    displayScale(container);
+                    break;
+                case 'multiple_choice':
+                    displayMultipleChoice(container);
+                    break;
+                case 'text':
+                    displayText(container);
+                    break;
+            }
+            
+            updateNavigationButtons();
+        }
+        
+        function displayYesNo(container) {
+            container.innerHTML = `
+                <div class="yes-no-buttons">
+                    <button class="btn" onclick="recordResponse(true, 'Yes')">Yes</button>
+                    <button class="btn" onclick="recordResponse(false, 'No')">No</button>
+                </div>
+            `;
+        }
+        
+        function displayScale(container) {
+            let html = '<div class="question-type-scale">';
+            for (let i = 1; i <= 10; i++) {
+                html += `<button class="scale-btn" onclick="recordResponse(${i}, '${i}')">${i}</button>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function displayMultipleChoice(container) {
+            let html = '<div class="question-options">';
+            state.currentQuestion.options.forEach(option => {
+                html += `<button class="option-btn" onclick="recordResponse('${option}', '${option}')">${option}</button>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function displayText(container) {
+            container.innerHTML = `
+                <textarea class="text-input" id="textInput" placeholder="Enter your response..."></textarea>
+            `;
+        }
+        
+        function recordResponse(value, display) {
+            state.allResponses[state.currentQuestion.question_id] = value;
+            
+            // Visual feedback - clear previous selection first
+            const container = document.getElementById('answerContainer');
+            container.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+            event.target.classList.add('selected');
+            
+            document.getElementById('nextBtn').style.display = 'block';
+            document.getElementById('completeBtn').style.display = 'none';
+        }
+        
+        async function submitResponse() {
+            if (state.submitting) return;
+            state.submitting = true;
+            
+            try {
+                let responseValue;
+                
+                if (state.currentQuestion.question_type === 'text') {
+                    responseValue = document.getElementById('textInput').value;
+                    if (!responseValue.trim()) {
+                        alert('Please enter a response');
+                        return;
+                    }
+                } else {
+                    if (!(state.currentQuestion.question_id in state.allResponses)) {
+                        alert('Please select an answer');
+                        return;
+                    }
+                    responseValue = state.allResponses[state.currentQuestion.question_id];
+                }
+                
+                const resp = await fetch(`${API_BASE_URL}/checkin/submit-response`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: state.currentSessionId,
+                        response: {
+                            question_id: state.currentQuestion.question_id,
+                            response_value: responseValue
+                        }
+                    })
+                });
+                const data = await resp.json();
+                
+                state.answeredCount++;
+                state.currentQuestion = data.next_question;
+                
+                if (data.is_complete) {
+                    await completeQuestionnaire();
+                } else {
+                    displayQuestion();
+                }
+            } catch (error) {
+                console.error('Error submitting response:', error);
+                alert('Error submitting response');
+            } finally {
+                state.submitting = false;
+            }
+        }
+        
+        async function completeQuestionnaire() {
+            try {
+                const resp = await fetch(`${API_BASE_URL}/checkin/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: state.currentSessionId })
+                });
+                const data = await resp.json();
+                
+                displaySummary(data.summary);
+            } catch (error) {
+                console.error('Error completing check-in:', error);
+                alert('Error completing check-in');
+            }
+        }
+        
+        // =====================================================================
+        // Summary Display
+        // =====================================================================
+        function formatAnswer(value) {
+            if (value === true) return 'Yes';
+            if (value === false) return 'No';
+            return value;
+        }
+        
+        function displaySummary(summary) {
+            const duration = summary.duration_minutes.toFixed(1);
+            document.getElementById('summaryMessage').textContent = 
+                `Check-in completed in ${duration} minutes with ${Object.keys(summary.responses).length} responses.`;
+            
+            let html = '';
+            for (const qId in summary.responses) {
+                const answer = formatAnswer(summary.responses[qId]);
+                html += `
+                    <div class="response-item">
+                        <div class="response-question">Q: ${qId}</div>
+                        <div class="response-answer">A: ${answer}</div>
+                    </div>
+                `;
+            }
+            document.getElementById('summaryContent').innerHTML = html;
+            
+            switchSection('summarySection');
+        }
+        
+        // =====================================================================
+        // Navigation
+        // =====================================================================
+        function updateNavigationButtons() {
+            const hasResponse = state.currentQuestion.question_id in state.allResponses ||
+                                state.currentQuestion.question_type === 'text';
+            
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('completeBtn').style.display = 'none';
+            
+            if (hasResponse) {
+                const currentCount = state.answeredCount + 1;
+                const total = state.sessionData.totalQuestions;
+                
+                if (currentCount >= total) {
+                    document.getElementById('completeBtn').style.display = 'block';
+                } else {
+                    document.getElementById('nextBtn').style.display = 'block';
+                }
+            }
+        }
+        
+        function backToPatients() {
+            state.currentSessionId = null;
+            state.currentQuestion = null;
+            state.allResponses = {};
+            state.answeredCount = 0;
+            switchSection('patientSection');
+        }
+        
+        function startOver() {
+            backToPatients();
+        }
+        
+        function switchSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+        }
+        
+        // =====================================================================
+        // Startup
+        // =====================================================================
+        init();
+    </script>
+</body>
+</html>
