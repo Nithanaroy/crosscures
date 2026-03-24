@@ -1,6 +1,7 @@
 """Models package - Pydantic schemas and domain objects"""
 from crosscures.models.schemas import (
     QuestionType,
+    GeneratorMode,
     CheckinQuestion,
     CheckinResponse,
     PatientCondition,
@@ -11,6 +12,7 @@ from crosscures.models.schemas import (
 
 __all__ = [
     "QuestionType",
+    "GeneratorMode",
     "CheckinQuestion",
     "CheckinResponse",
     "PatientCondition",

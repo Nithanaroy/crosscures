@@ -10,11 +10,13 @@ export async function fetchPatients() {
     return resp.json();
 }
 
-export async function initializeSession(patientId) {
+export async function initializeSession(patientId, mode, model) {
+    const body = { patient_id: patientId, mode: mode || 'static' };
+    if (model) body.model = model;
     const resp = await fetch(`${API_BASE_URL}/checkin/initialize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patient_id: patientId })
+        body: JSON.stringify(body)
     });
     return resp.json();
 }
@@ -40,5 +42,10 @@ export async function completeSession(sessionId) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId })
     });
+    return resp.json();
+}
+
+export async function fetchGeneratorStatus() {
+    const resp = await fetch(`${API_BASE_URL}/generator/status`);
     return resp.json();
 }

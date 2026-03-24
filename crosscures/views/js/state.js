@@ -12,6 +12,10 @@ export const state = {
     answeredQuestions: {},
     skippedQuestions: new Set(),
     treePanelOpen: false,
+    generatorMode: 'static',
+    selectedModel: null,
+    availableModels: [],
+    reasoningHistory: [],
 };
 
 export function resetState() {
@@ -23,4 +27,7 @@ export function resetState() {
     state.answeredQuestions = {};
     state.skippedQuestions = new Set();
     state.treePanelOpen = false;
+    state.generatorMode = 'static';
+    state.selectedModel = null;
+    state.reasoningHistory = [];
 }

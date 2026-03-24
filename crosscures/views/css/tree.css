@@ -179,3 +179,150 @@
     height: 10px;
     border-radius: 50%;
 }
+
+/* ============================================================================
+   Mode Toggle
+   ============================================================================ */
+
+.mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.mode-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.mode-btn {
+    padding: 6px 16px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover:not(:disabled) {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.mode-btn.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+.mode-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ============================================================================
+   Model Selector
+   ============================================================================ */
+
+.model-select-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.model-select {
+    flex: 1;
+    max-width: 360px;
+    padding: 6px 10px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.model-select:hover {
+    border-color: #667eea;
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* ============================================================================
+   LLM Reasoning Panel
+   ============================================================================ */
+
+.reasoning-empty {
+    color: #999;
+    font-size: 12px;
+    font-style: italic;
+    padding: 8px 0;
+}
+
+.reasoning-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.reasoning-entry {
+    border-left: 3px solid #e0e0e0;
+    padding: 8px 10px;
+    border-radius: 0 6px 6px 0;
+    background: #fafafa;
+    transition: all 0.2s;
+}
+
+.reasoning-entry.reasoning-current {
+    border-left-color: #667eea;
+    background: #eef2ff;
+}
+
+.reasoning-entry.reasoning-answered {
+    border-left-color: #4caf50;
+    background: #f0faf0;
+}
+
+.reasoning-step {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #999;
+    margin-bottom: 4px;
+}
+
+.reasoning-question {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.reasoning-text {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+.reasoning-answer {
+    font-size: 11px;
+    color: #667eea;
+    font-weight: 600;
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid #e8e8e8;
+}

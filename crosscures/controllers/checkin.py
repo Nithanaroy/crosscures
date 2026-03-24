@@ -12,8 +12,14 @@ from crosscures.models import (
     CheckinResponse,
     CheckinSession,
     CheckinSummary,
+    GeneratorMode,
 )
-from crosscures.services import AdaptiveQuestionnaireGenerator
+from crosscures.services import (
+    StaticQuestionnaireGenerator,
+    LLMQuestionnaireGenerator,
+    llm_is_available,
+    llm_available_models,
+)
 from crosscures.repositories import (
     PatientDataProvider,
     MockPatientDataProvider,
@@ -24,8 +30,9 @@ from crosscures.repositories import (
 
 router = APIRouter()
 
-# Global services
-generator = AdaptiveQuestionnaireGenerator()
+# Global services — dual generators
+static_generator = StaticQuestionnaireGenerator()
+llm_generator = LLMQuestionnaireGenerator()
 session_store = SessionStore()
 patient_data_provider: Optional[PatientDataProvider] = None
 
@@ -53,6 +60,8 @@ def set_data_provider(provider: PatientDataProvider):
 
 class InitializeCheckinRequest(BaseModel):
     patient_id: str
+    mode: str = "static"  # "static" or "llm"
+    model: Optional[str] = None  # OpenRouter model ID override
 
 
 class QuestionTreeNode(BaseModel):
@@ -74,6 +83,8 @@ class InitializeCheckinResponse(BaseModel):
     total_questions: int
     first_question: CheckinQuestion
     question_tree: list[QuestionTreeNode]
+    mode: str = "static"
+    first_reasoning: Optional[str] = None
 
 
 class SubmitResponseRequest(BaseModel):
@@ -86,6 +97,8 @@ class SubmitResponseResponse(BaseModel):
     next_question: Optional[CheckinQuestion] = None
     is_complete: bool = False
     skipped_questions: list[str] = []
+    reasoning: Optional[str] = None
+    updated_question_tree: Optional[list[QuestionTreeNode]] = None
 
 
 class CompleteCheckinRequest(BaseModel):
@@ -206,8 +219,18 @@ async def initialize_checkin(request: InitializeCheckinRequest):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     
+    # Select generator based on mode
+    mode = request.mode if request.mode in ("static", "llm") else "static"
+    if mode == "llm" and not llm_is_available():
+        raise HTTPException(status_code=400, detail="LLM mode unavailable: OPENROUTER_API_KEY not set")
+    
+    gen = llm_generator if mode == "llm" else static_generator
+    
     # Generate adaptive questionnaire
-    questions = generator.generate_questionnaire(patient)
+    if mode == "llm":
+        questions = gen.generate_questionnaire(patient, model=request.model)
+    else:
+        questions = gen.generate_questionnaire(patient)
     
     # Create session
     session_id = str(uuid.uuid4())
@@ -217,12 +240,14 @@ async def initialize_checkin(request: InitializeCheckinRequest):
         created_at=datetime.now(),
         all_questions=questions,
         current_question_index=0,
+        generator_mode=mode,
+        llm_model=request.model,
     )
     
     session_store.create_session(session_id, {"session": session})
     
     # Get first question
-    first_question, actual_index = generator.get_next_question(
+    first_question, actual_index, reasoning = gen.get_next_question(
         patient,
         questions,
         [],
@@ -230,6 +255,9 @@ async def initialize_checkin(request: InitializeCheckinRequest):
     )
     session.current_question_index = actual_index
     session_store.update_session(session_id, {"session": session})
+    
+    if not first_question:
+        raise HTTPException(status_code=500, detail="Failed to generate questionnaire questions")
     
     # Build question tree for the decision tree panel
     question_tree = _build_question_tree(questions)
@@ -243,6 +271,8 @@ async def initialize_checkin(request: InitializeCheckinRequest):
         total_questions=len(questions),
         first_question=first_question,
         question_tree=question_tree,
+        mode=mode,
+        first_reasoning=reasoning,
     )
 
 
@@ -258,17 +288,29 @@ async def submit_response(request: SubmitResponseRequest):
     session: CheckinSession = session_data["session"]
     patient = patient_data_provider.get_patient(session.patient_id)
     
+    # Select generator based on session mode
+    gen = llm_generator if session.generator_mode == "llm" else static_generator
+    
     # Record response
     session.responses.append(request.response)
     
     # Move to next question
     next_index = session.current_question_index + 1
-    next_question, actual_index = generator.get_next_question(
-        patient,
-        session.all_questions,
-        session.responses,
-        next_index
-    )
+    if session.generator_mode == "llm":
+        next_question, actual_index, reasoning = gen.get_next_question(
+            patient,
+            session.all_questions,
+            session.responses,
+            next_index,
+            model=session.llm_model,
+        )
+    else:
+        next_question, actual_index, reasoning = gen.get_next_question(
+            patient,
+            session.all_questions,
+            session.responses,
+            next_index
+        )
     
     # Collect skipped question IDs (those between next_index and actual_index)
     skipped = []
@@ -288,11 +330,18 @@ async def submit_response(request: SubmitResponseRequest):
     
     session_store.update_session(session.session_id, {"session": session})
     
+    # Build updated tree if LLM mode (plan may have changed)
+    updated_tree = None
+    if session.generator_mode == "llm":
+        updated_tree = _build_question_tree(session.all_questions)
+    
     return SubmitResponseResponse(
         message="Response recorded" if not is_complete else "Questionnaire complete",
         next_question=next_question,
         is_complete=is_complete,
         skipped_questions=skipped,
+        reasoning=reasoning,
+        updated_question_tree=updated_tree,
     )
 
 
@@ -418,15 +467,25 @@ def _build_question_tree(questions: list[CheckinQuestion]) -> list[QuestionTreeN
 @router.get("/questions/bank")
 async def get_question_bank() -> dict:
     """Get all available questions (for debugging/demo purposes)"""
-    questions = generator.question_bank.questions
+    questions = static_generator.question_bank.questions
     return {
         "total_questions": len(questions),
         "by_condition": {
-            "base": len(generator.question_bank.get_questions_by_condition("base")),
-            "diabetes": len(generator.question_bank.get_questions_by_condition("diabetes")),
-            "hypertension": len(generator.question_bank.get_questions_by_condition("hypertension")),
-            "cardiac": len(generator.question_bank.get_questions_by_condition("cardiac")),
-            "respiratory": len(generator.question_bank.get_questions_by_condition("respiratory")),
+            "base": len(static_generator.question_bank.get_questions_by_condition("base")),
+            "diabetes": len(static_generator.question_bank.get_questions_by_condition("diabetes")),
+            "hypertension": len(static_generator.question_bank.get_questions_by_condition("hypertension")),
+            "cardiac": len(static_generator.question_bank.get_questions_by_condition("cardiac")),
+            "respiratory": len(static_generator.question_bank.get_questions_by_condition("respiratory")),
         },
         "questions": questions,
+    }
+
+
+@router.get("/generator/status")
+async def generator_status() -> dict:
+    """Report which generator modes are available and list models"""
+    return {
+        "static": True,
+        "llm": llm_is_available(),
+        "models": llm_available_models(),
     }

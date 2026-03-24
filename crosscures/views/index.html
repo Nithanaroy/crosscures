@@ -18,6 +18,16 @@
             <div id="patientSection" class="section active">
                 <h2 style="margin-bottom: 20px;">Select a Patient</h2>
                 <div class="data-source-info" id="dataSourceInfo">Loading data source...</div>
+                <div class="mode-toggle" id="modeToggle">
+                    <span class="mode-label">Generator:</span>
+                    <button class="mode-btn active" data-mode="static" onclick="window._selectMode('static')">Static</button>
+                    <button class="mode-btn" data-mode="llm" onclick="window._selectMode('llm')">LLM</button>
+                </div>
+                <div class="model-select-row" id="modelSelectRow" style="display:none;">
+                    <span class="mode-label">Model:</span>
+                    <select id="modelSelect" class="model-select" onchange="window._selectModel(this.value)">
+                    </select>
+                </div>
                 <div id="patientList" class="patient-list">
                     <div class="loading"><div class="spinner"></div> Loading patients...</div>
                 </div>

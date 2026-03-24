@@ -16,6 +16,12 @@ class QuestionType(str, Enum):
     TEXT = "text"
 
 
+class GeneratorMode(str, Enum):
+    """Which question generation engine to use"""
+    STATIC = "static"
+    LLM = "llm"
+
+
 class CheckinQuestion(BaseModel):
     """Single adaptive questionnaire question"""
     question_id: str
@@ -26,6 +32,7 @@ class CheckinQuestion(BaseModel):
     depends_on_response: Optional[Any] = None  # What response value triggers this question
     options: Optional[list[str]] = None  # For multiple_choice
     metadata: dict = Field(default_factory=dict)
+    rationale: Optional[str] = None  # LLM reasoning for why this question was chosen
 
 
 class CheckinResponse(BaseModel):
@@ -60,6 +67,8 @@ class CheckinSession(BaseModel):
     responses: list[CheckinResponse] = Field(default_factory=list)
     current_question_index: int = 0
     all_questions: list[CheckinQuestion] = Field(default_factory=list)
+    generator_mode: str = "static"
+    llm_model: Optional[str] = None
 
 
 class CheckinSummary(BaseModel):

@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { submitQuestionResponse } from './api.js';
-import { renderTree } from './tree.js';
+import { renderSidePanel } from './tree.js';
 import { completeQuestionnaire } from './summary.js';
 
 export function displayQuestion() {
@@ -117,8 +117,23 @@ export async function submitResponse() {
             data.skipped_questions.forEach(qId => state.skippedQuestions.add(qId));
         }
 
+        // Update question tree if backend sent a revised plan (LLM mode)
+        if (data.updated_question_tree) {
+            state.questionTree = data.updated_question_tree;
+            state.sessionData.totalQuestions = data.updated_question_tree.length;
+        }
+
         state.answeredCount++;
         state.currentQuestion = data.next_question;
+
+        // If LLM mode returned reasoning for the next question, record it
+        if (data.reasoning && data.next_question && state.generatorMode === 'llm') {
+            state.reasoningHistory.push({
+                question_id: data.next_question.question_id,
+                question_text: data.next_question.question_text,
+                reasoning: data.reasoning,
+            });
+        }
 
         if (data.is_complete) {
             state.questionTree.forEach(node => {
@@ -128,10 +143,10 @@ export async function submitResponse() {
                     state.skippedQuestions.add(node.question_id);
                 }
             });
-            renderTree();
+            renderSidePanel();
             await completeQuestionnaire();
         } else {
-            renderTree();
+            renderSidePanel();
             displayQuestion();
         }
     } catch (error) {
