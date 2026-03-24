@@ -1,0 +1,94 @@
+Mock Longitudinal Patient History
+Patient Profile
+Name: Sarah Thompson
+DOB: 1984-06-12 (Age 41)
+Sex: Female
+Ethnicity: Caucasian
+Occupation: High school teacher
+Location: Austin, TX
+
+Family History
+Mother: Type 2 diabetes (diagnosed at 52), hypertension
+Father: Myocardial infarction at 60
+Maternal aunt: Breast cancer (age 48)
+No known genetic testing
+
+Social History
+Non-smoker
+Alcohol: Social (1–2 drinks/week)
+Exercise: Irregular (1–2x/week walking)
+Diet: Mixed, high carbohydrate intake
+Sleep: ~6 hours/night, reports poor quality
+
+Past Medical History
+2015: Diagnosed with polycystic ovary syndrome (PCOS)
+2018: Gestational diabetes during pregnancy
+2020: Mild hypertension diagnosed
+2022: Prediabetes (A1c 5.9%)
+2023: Generalized anxiety disorder
+
+Medications (Current)
+Metformin 1000 mg BID
+Lisinopril 10 mg daily
+Sertraline 50 mg daily
+Vitamin D3 supplement
+
+Allergies
+Penicillin → rash
+
+Timeline of Key Clinical Events
+2015 (Age 31) – Initial Diagnosis
+Symptoms: Irregular periods, weight gain, acne
+Workup: Elevated androgens, ultrasound showing ovarian cysts
+Diagnosis: PCOS
+Plan: Lifestyle modification + started metformin
+2018 (Age 34) – Pregnancy
+Developed gestational diabetes (2nd trimester)
+Managed with diet + insulin
+Delivered healthy baby at term
+Postpartum: Glucose normalized
+2020 (Age 36) – Hypertension
+BP: ~145/92 consistently
+Started on lisinopril
+Lifestyle counseling provided
+2022 (Age 38) – Metabolic Concerns
+Labs:
+A1c: 5.9% (prediabetes)
+LDL: 145 mg/dL
+BMI: 31
+Symptoms: Fatigue, weight gain
+Plan:
+Reinforced diet/exercise
+Continued metformin
+2023 (Age 39) – Mental Health
+Symptoms: Anxiety, poor sleep, work stress
+GAD-7: Moderate anxiety
+Started sertraline
+Referred to therapy
+2024 (Age 40) – Preventive Care
+Mammogram: Normal
+Pap smear: Normal
+BP controlled (~128/82)
+A1c: 6.1% (worsening trend)
+2025 (Age 41) – Recent Visit
+Chief complaints:
+Increased fatigue
+Occasional headaches
+Difficulty losing weight
+Vitals:
+BP: 132/85
+BMI: 32
+Labs:
+A1c: 6.3%
+Fasting glucose: 118 mg/dL
+LDL: 152 mg/dL
+HDL: 42 mg/dL
+Triglycerides: 210 mg/dL
+
+Active Problems (Current)
+Prediabetes (progressing toward Type 2 diabetes)
+Hypertension (controlled)
+PCOS
+Hyperlipidemia
+Generalized anxiety disorder
+Obesity (BMI >30)

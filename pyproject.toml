@@ -5,7 +5,13 @@ description = "CrossCures monorepo workspace"
 requires-python = ">=3.12"
 
 [tool.uv.workspace]
-members = ["crosscures", "ehrshots", "epic", "medalign"]
+members = [
+    "crosscures",
+    "ehrshots",
+    "epic",
+    "medalign",
+    "voice_agent",
+]
 
 [dependency-groups]
 dev = [

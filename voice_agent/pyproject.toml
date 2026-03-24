@@ -1,0 +1,9 @@
+[project]
+name = "voice_agent"
+version = "0.1.0"
+description = "Voice agent micro-app for local development"
+requires-python = ">=3.11"
+
+# Keep dependencies minimal; use environment-managed deps where possible.
+dependencies = [
+]
