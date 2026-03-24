@@ -6,7 +6,10 @@ An adaptive symptom questionnaire engine for CrossCures Stage 1 (Pre-Visit Intel
 
 **Key capabilities:**
 - Generates 4-12 questions per patient based on confirmed conditions (diabetes, hypertension, cardiac, respiratory)
+- **Dual-mode generation**: Static (hardcoded question bank with branching) or LLM-powered (personalized via OpenRouter)
 - Branching logic: follow-up questions trigger conditionally (e.g., pain >= 7 prompts a location detail question)
+- **Chain-of-Thought reasoning**: LLM mode shows clinical reasoning for each question selection
+- **Dynamic model selection**: Choose from 8 curated free OpenRouter models at runtime
 - Supports 4 question types: yes/no, 1-10 scale, multiple choice, free text
 - Swappable data sources: mock patients for demo, DuckDB for real OMOP CDM data
 
@@ -14,7 +17,7 @@ An adaptive symptom questionnaire engine for CrossCures Stage 1 (Pre-Visit Intel
 
 Before a clinic visit, patients need a structured way to report symptoms so physicians arrive prepared. A static questionnaire wastes time on irrelevant questions. This engine tailors the check-in to each patient's condition profile, producing higher-quality pre-visit data in less time.
 
-This MVP validates the core adaptive logic before integrating LLM personalization, the memory layer, and pre-visit brief generation in later stages.
+This MVP validates the core adaptive logic and provides an A/B comparison between static branching and LLM-powered personalization.
 
 ## How
 
@@ -29,7 +32,8 @@ crosscures/
 ├── models/
 │   └── schemas.py            # Pydantic data models
 ├── services/
-│   └── generator.py          # Adaptive question engine
+│   ├── generator.py          # QuestionnaireGenerator interface + implementations
+│   └── llm_client.py         # OpenRouter LLM client wrapper
 ├── controllers/
 │   └── checkin.py            # API route handlers
 └── repositories/
@@ -37,7 +41,9 @@ crosscures/
     └── providers.py          # Mock + DuckDB implementations
 ```
 
-Pattern: **MVC + Repository**. Business logic (services) is framework-agnostic and testable without FastAPI. Data access (repositories) is abstracted behind interfaces so mock and DuckDB sources are interchangeable at runtime.
+Pattern: **MVC + Repository**. The `QuestionnaireGenerator` abstract interface has two implementations:
+- `StaticQuestionnaireGenerator` -- hardcoded question bank with deterministic branching logic
+- `LLMQuestionnaireGenerator` -- calls OpenRouter to generate personalized questions with CoT reasoning
 
 ### Setup
 
@@ -56,12 +62,38 @@ uv run --package crosscures uvicorn crosscures.app:app --reload --port 8000
 python -m http.server 8001 -d crosscures/views
 ```
 
+### LLM Mode Setup (Optional)
+
+To enable LLM-powered question generation, create a `.env` file in the repo root with your [OpenRouter](https://openrouter.ai/) API key:
+
+```bash
+# .env
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+```
+
+The UI will show a **Static | LLM** toggle. When LLM mode is selected, a model dropdown appears with 8 curated free models:
+
+| Model | Why |
+|-------|-----|
+| Qwen3 Coder 480B (35B active) | Largest active params, best JSON output |
+| StepFun Step 3.5 Flash | Health #38 ranking, reasoning model |
+| Llama 3.3 70B Instruct | Battle-tested, reliable JSON |
+| OpenAI gpt-oss-120b | Strong instruction following |
+| NVIDIA Nemotron 3 Super | Good reasoning, 1M context |
+| Mistral Small 3.1 24B | Fast and efficient |
+| Google Gemma 3 27B | Solid general capability |
+| Nous Hermes 3 405B | Very large, great reasoning |
+
+Without an API key, Static mode works normally and the LLM button is disabled.
+
 ### Quick Start (User)
 
 1. Open `http://localhost:8001/index.html` in your browser
-2. Select a patient (4 mock patients with different condition profiles)
-3. Answer the adaptive questionnaire -- notice branching in action
-4. View the completed check-in summary
+2. Select a generator mode: **Static** (deterministic branching) or **LLM** (AI-powered)
+3. If LLM mode, pick a model from the dropdown
+4. Select a patient (4 mock patients with different condition profiles)
+5. Answer the adaptive questionnaire -- notice branching (Static) or CoT reasoning panel (LLM)
+6. View the completed check-in summary
 
 To switch to real patient data from DuckDB:
 
@@ -81,10 +113,15 @@ Refresh the UI to see patients loaded from DuckDB.
 # 1. List patients
 curl http://localhost:8000/patients
 
-# 2. Start a check-in session
+# 2. Start a check-in session (static mode)
 curl -X POST http://localhost:8000/checkin/initialize \
   -H "Content-Type: application/json" \
   -d '{"patient_id": "PAT001"}'
+
+# 2b. Start a check-in session (LLM mode with model selection)
+curl -X POST http://localhost:8000/checkin/initialize \
+  -H "Content-Type: application/json" \
+  -d '{"patient_id": "PAT001", "mode": "llm", "model": "meta-llama/llama-3.3-70b-instruct:free"}'
 
 # 3. Submit a response (use session_id from step 2)
 curl -X POST http://localhost:8000/checkin/submit-response \
