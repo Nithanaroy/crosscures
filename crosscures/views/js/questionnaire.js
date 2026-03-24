@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { submitQuestionResponse } from './api.js';
 import { renderSidePanel } from './tree.js';
 import { completeQuestionnaire } from './summary.js';
+import { onQuestionDisplayed } from './voice.js';
 
 export function displayQuestion() {
     if (!state.currentQuestion) {
@@ -38,13 +39,14 @@ export function displayQuestion() {
     }
 
     updateNavigationButtons();
+    onQuestionDisplayed();
 }
 
 function displayYesNo(container) {
     container.innerHTML = `
         <div class="yes-no-buttons">
-            <button class="btn" onclick="window._recordResponse(true, 'Yes')">Yes</button>
-            <button class="btn" onclick="window._recordResponse(false, 'No')">No</button>
+            <button class="btn" onclick="window._recordResponse(true, 'Yes', this)">Yes</button>
+            <button class="btn" onclick="window._recordResponse(false, 'No', this)">No</button>
         </div>
     `;
 }
@@ -52,7 +54,7 @@ function displayYesNo(container) {
 function displayScale(container) {
     let html = '<div class="question-type-scale">';
     for (let i = 1; i <= 10; i++) {
-        html += `<button class="scale-btn" onclick="window._recordResponse(${i}, '${i}')">${i}</button>`;
+        html += `<button class="scale-btn" onclick="window._recordResponse(${i}, '${i}', this)">${i}</button>`;
     }
     html += '</div>';
     container.innerHTML = html;
@@ -61,7 +63,7 @@ function displayScale(container) {
 function displayMultipleChoice(container) {
     let html = '<div class="question-options">';
     state.currentQuestion.options.forEach(option => {
-        html += `<button class="option-btn" onclick="window._recordResponse('${option}', '${option}')">${option}</button>`;
+        html += `<button class="option-btn" onclick="window._recordResponse('${option}', '${option}', this)">${option}</button>`;
     });
     html += '</div>';
     container.innerHTML = html;
@@ -73,12 +75,16 @@ function displayText(container) {
     `;
 }
 
-export function recordResponse(value, display) {
+export function recordResponse(value, display, sourceEl = null) {
     state.allResponses[state.currentQuestion.question_id] = value;
 
     const container = document.getElementById('answerContainer');
     container.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-    event.target.classList.add('selected');
+
+    const selectedEl = sourceEl || (typeof event !== 'undefined' ? event.target : null);
+    if (selectedEl && selectedEl.classList) {
+        selectedEl.classList.add('selected');
+    }
 
     document.getElementById('nextBtn').style.display = 'block';
     document.getElementById('completeBtn').style.display = 'none';

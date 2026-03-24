@@ -3,6 +3,7 @@ import { loadDataSourceInfo, loadPatients, loadGeneratorStatus, selectMode, sele
 import { recordResponse, submitResponse } from './questionnaire.js';
 import { toggleTreePanel, resetTreePanel } from './tree.js';
 import { hidePatientBanner } from './banner.js';
+import { initVoiceControls, toggleVoiceMode, startVoiceInput, speakCurrentQuestion } from './voice.js';
 
 export function switchSection(sectionId) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -28,9 +29,13 @@ window._startOver = backToPatients;
 window._toggleTreePanel = toggleTreePanel;
 window._selectMode = selectMode;
 window._selectModel = selectModel;
+window._toggleVoiceMode = toggleVoiceMode;
+window._startVoiceInput = startVoiceInput;
+window._speakCurrentQuestion = speakCurrentQuestion;
 
 // Boot
 async function init() {
+    initVoiceControls();
     await loadDataSourceInfo();
     await loadGeneratorStatus();
     await loadPatients();

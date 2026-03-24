@@ -2,9 +2,14 @@
 Stage 1 MVP - FastAPI Application (Controller Layer)
 Main entry point for the adaptive questionnaire backend.
 """
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from crosscures.controllers import checkin_router
+
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -24,6 +29,16 @@ app.add_middleware(
 
 # Register routers
 app.include_router(checkin_router)
+
+
+# Mount voice agent routes (optional; app still starts if unavailable)
+try:
+    from voice_agent.main import app as voice_agent_app
+
+    app.mount("/voice-agent", voice_agent_app.fastapi_app)
+    logger.info("[STARTUP] Mounted voice agent at /voice-agent")
+except Exception as e:
+    logger.warning("[STARTUP] Voice agent not mounted: %s", e)
 
 
 @app.on_event("startup")

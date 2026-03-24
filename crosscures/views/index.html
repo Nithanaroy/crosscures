@@ -54,6 +54,14 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="voice-controls" id="voiceControls" style="display:none;">
+                            <div class="voice-controls-row">
+                                <button class="btn secondary" id="voiceToggleBtn" onclick="window._toggleVoiceMode()">Enable Voice</button>
+                                <button class="btn secondary" id="voiceListenBtn" onclick="window._startVoiceInput()" disabled>Speak Answer</button>
+                                <button class="btn secondary" id="voiceReadBtn" onclick="window._speakCurrentQuestion()" disabled>Read Question</button>
+                            </div>
+                            <div class="voice-status" id="voiceStatus">Voice mode is off.</div>
+                        </div>
                         <div class="question-text" id="questionText"></div>
                         <div id="answerContainer"></div>
                         <div class="navigation">
