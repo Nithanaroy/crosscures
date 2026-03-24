@@ -86,6 +86,34 @@ The UI will show a **Static | LLM** toggle. When LLM mode is selected, a model d
 
 Without an API key, Static mode works normally and the LLM button is disabled.
 
+### Voice Mode Setup (Cartesia + VoiceAgent)
+
+The questionnaire UI now supports hands-free voice flow:
+- Reads each question using Cartesia TTS
+- Captures spoken answers from microphone audio
+- Transcribes with Cartesia STT
+- Auto-submits and advances to the next question
+- Forwards transcripts to mounted `voice_agent` websocket session
+
+Add these variables to `.env` (repo root):
+
+```bash
+CARTESIA_API_KEY=your-cartesia-key
+CARTESIA_VERSION=2026-03-01
+CARTESIA_TTS_MODEL=sonic-3
+CARTESIA_STT_MODEL=ink-whisper
+CARTESIA_VOICE_ID=694f9389-aac1-45b6-b726-9d9369183238
+
+# Required for mounted voice_agent websocket session
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
+Voice endpoints exposed by API server:
+- `POST /voice/tts`
+- `POST /voice/stt`
+- `GET /voice/status`
+- `GET /voice-agent/status`
+
 ### Quick Start (User)
 
 1. Open `http://localhost:8001/index.html` in your browser

@@ -6,7 +6,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from crosscures.controllers import checkin_router
+from crosscures.controllers import checkin_router, voice_router
 
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(checkin_router)
+app.include_router(voice_router)
 
 
 # Mount voice agent routes (optional; app still starts if unavailable)

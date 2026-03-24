@@ -1,6 +1,5 @@
 import { state } from './state.js';
-
-const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+import { API_BASE_URL } from './state.js';
 
 const numberWords = {
     one: 1,
@@ -16,11 +15,18 @@ const numberWords = {
 };
 
 const voiceState = {
-    supported: !!SpeechRecognitionCtor && !!window.speechSynthesis,
+    supported: !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia,
     enabled: false,
-    recognition: null,
+    mediaStream: null,
+    recorder: null,
+    chunks: [],
     isListening: false,
+    maxRecordTimer: null,
+    silenceCheckTimer: null,
     lastQuestionId: null,
+    voiceAgentWs: null,
+    voiceAgentReady: false,
+    voiceAgentInitStarted: false,
 };
 
 function setStatus(message) {
@@ -38,6 +44,104 @@ function setButtonState() {
     toggleBtn.textContent = voiceState.enabled ? 'Disable Voice' : 'Enable Voice';
     listenBtn.disabled = !voiceState.enabled;
     readBtn.disabled = !voiceState.enabled;
+}
+
+async function postTTS(text) {
+    const resp = await fetch(`${API_BASE_URL}/voice/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, language: 'en' }),
+    });
+    if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error(err || 'TTS failed');
+    }
+    return resp.blob();
+}
+
+async function postSTT(blob) {
+    const form = new FormData();
+    form.append('file', blob, 'answer.webm');
+
+    const resp = await fetch(`${API_BASE_URL}/voice/stt`, {
+        method: 'POST',
+        body: form,
+    });
+    if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error(err || 'STT failed');
+    }
+
+    const data = await resp.json();
+    return (data.text || '').trim();
+}
+
+function wsBaseFromApiBase(apiBase) {
+    if (apiBase.startsWith('https://')) return `wss://${apiBase.slice(8)}`;
+    if (apiBase.startsWith('http://')) return `ws://${apiBase.slice(7)}`;
+    return apiBase;
+}
+
+async function initVoiceAgentSession() {
+    if (voiceState.voiceAgentInitStarted) return;
+    voiceState.voiceAgentInitStarted = true;
+
+    try {
+        const callId = `web-${Date.now()}`;
+        const resp = await fetch(`${API_BASE_URL}/voice-agent/chats`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                call_id: callId,
+                from: 'web-user',
+                to: 'crosscures',
+                agent_call_id: callId,
+                agent: {
+                    system_prompt: 'You are a voice check-in assistant. Keep responses concise.',
+                    introduction: 'Hello, we are starting your check-in.',
+                },
+                metadata: {
+                    source: 'crosscures-web',
+                },
+            }),
+        });
+
+        if (!resp.ok) {
+            throw new Error(await resp.text());
+        }
+
+        const data = await resp.json();
+        const wsUrl = `${wsBaseFromApiBase(API_BASE_URL)}/voice-agent${data.websocket_url}`;
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            voiceState.voiceAgentReady = true;
+            voiceState.voiceAgentWs = ws;
+        };
+
+        ws.onclose = () => {
+            voiceState.voiceAgentReady = false;
+            voiceState.voiceAgentWs = null;
+        };
+
+        ws.onerror = () => {
+            voiceState.voiceAgentReady = false;
+            voiceState.voiceAgentWs = null;
+        };
+    } catch (error) {
+        console.error('VoiceAgent session init failed:', error);
+    }
+}
+
+function sendTranscriptToVoiceAgent(transcript) {
+    if (!voiceState.voiceAgentReady || !voiceState.voiceAgentWs) return;
+    try {
+        voiceState.voiceAgentWs.send(JSON.stringify({ type: 'user_state', value: 'speaking' }));
+        voiceState.voiceAgentWs.send(JSON.stringify({ type: 'message', content: transcript }));
+        voiceState.voiceAgentWs.send(JSON.stringify({ type: 'user_state', value: 'idle' }));
+    } catch (error) {
+        console.error('VoiceAgent send failed:', error);
+    }
 }
 
 function extractScaleValue(transcript) {
@@ -62,6 +166,8 @@ function autoSubmitCurrentAnswer() {
 
 function handleTranscript(rawTranscript) {
     if (!state.currentQuestion) return;
+
+    sendTranscriptToVoiceAgent(rawTranscript);
 
     const transcript = rawTranscript.toLowerCase().trim();
     const q = state.currentQuestion;
@@ -115,72 +221,155 @@ function handleTranscript(rawTranscript) {
     startVoiceInput();
 }
 
-function speak(text, onEnd = null) {
-    if (!voiceState.supported || !voiceState.enabled || !text) return;
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.onend = () => {
-        if (typeof onEnd === 'function') {
-            onEnd();
-        }
-    };
-    window.speechSynthesis.speak(utterance);
+async function ensureMicStream() {
+    if (voiceState.mediaStream) return voiceState.mediaStream;
+    voiceState.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    return voiceState.mediaStream;
 }
 
-function ensureRecognition() {
-    if (!voiceState.supported || voiceState.recognition) return;
+function stopTimers() {
+    if (voiceState.maxRecordTimer) {
+        clearTimeout(voiceState.maxRecordTimer);
+        voiceState.maxRecordTimer = null;
+    }
+    if (voiceState.silenceCheckTimer) {
+        clearInterval(voiceState.silenceCheckTimer);
+        voiceState.silenceCheckTimer = null;
+    }
+}
 
-    voiceState.recognition = new SpeechRecognitionCtor();
-    voiceState.recognition.lang = 'en-US';
-    voiceState.recognition.interimResults = false;
-    voiceState.recognition.maxAlternatives = 1;
+async function beginRecording() {
+    const stream = await ensureMicStream();
+    voiceState.chunks = [];
+    voiceState.recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
-    voiceState.recognition.onresult = (event) => {
+    let hasSpeech = false;
+    let lastSpeechAt = Date.now();
+
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    voiceState.recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+            voiceState.chunks.push(event.data);
+        }
+    };
+
+    voiceState.recorder.onstop = async () => {
+        stopTimers();
+        await audioContext.close();
         voiceState.isListening = false;
-        const transcript = event.results?.[0]?.[0]?.transcript || '';
-        if (!transcript) {
-            setStatus('No speech detected. Please try again.');
+
+        const blob = new Blob(voiceState.chunks, { type: 'audio/webm' });
+        if (blob.size === 0) {
+            setStatus('No audio captured. Listening again...');
             startVoiceInput();
             return;
         }
-        handleTranscript(transcript);
-    };
 
-    voiceState.recognition.onerror = () => {
-        voiceState.isListening = false;
-        setStatus('Voice recognition error. Please try again.');
-    };
-
-    voiceState.recognition.onend = () => {
-        voiceState.isListening = false;
-        if (voiceState.enabled) {
-            const msg = document.getElementById('voiceStatus')?.textContent || '';
-            if (msg.startsWith('Listening')) {
-                setStatus('Listening stopped. Trying again...');
+        setStatus('Transcribing...');
+        try {
+            const transcript = await postSTT(blob);
+            if (!transcript) {
+                setStatus('No transcript received. Listening again...');
                 startVoiceInput();
+                return;
             }
+            setStatus(`Heard: ${transcript}`);
+            handleTranscript(transcript);
+        } catch (error) {
+            console.error('STT failed:', error);
+            setStatus('STT failed. Listening again...');
+            startVoiceInput();
         }
     };
+
+    voiceState.recorder.start(250);
+    voiceState.isListening = true;
+
+    voiceState.maxRecordTimer = setTimeout(() => {
+        if (voiceState.recorder && voiceState.recorder.state === 'recording') {
+            voiceState.recorder.stop();
+        }
+    }, 12000);
+
+    voiceState.silenceCheckTimer = setInterval(() => {
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((sum, v) => sum + v, 0) / data.length;
+
+        if (avg > 14) {
+            hasSpeech = true;
+            lastSpeechAt = Date.now();
+        }
+
+        if (hasSpeech && Date.now() - lastSpeechAt > 1100) {
+            if (voiceState.recorder && voiceState.recorder.state === 'recording') {
+                voiceState.recorder.stop();
+            }
+        }
+    }, 160);
 }
 
-export function initVoiceControls() {
+async function speak(text, onEnd = null) {
+    if (!voiceState.supported || !voiceState.enabled || !text) return;
+    try {
+        setStatus('Generating speech...');
+        const blob = await postTTS(text);
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+
+        audio.onended = () => {
+            URL.revokeObjectURL(url);
+            if (typeof onEnd === 'function') onEnd();
+        };
+        audio.onerror = () => {
+            URL.revokeObjectURL(url);
+            setStatus('Audio playback failed.');
+            if (typeof onEnd === 'function') onEnd();
+        };
+
+        await audio.play();
+    } catch (error) {
+        console.error('TTS failed:', error);
+        setStatus('TTS failed.');
+        if (typeof onEnd === 'function') onEnd();
+    }
+}
+
+async function checkVoiceAgentStatus() {
+    try {
+        const resp = await fetch(`${API_BASE_URL}/voice-agent/status`);
+        return resp.ok;
+    } catch {
+        return false;
+    }
+}
+
+export async function initVoiceControls() {
     const panel = document.getElementById('voiceControls');
     if (!panel) return;
 
     panel.style.display = 'block';
 
     if (!voiceState.supported) {
-        setStatus('Voice is not supported in this browser.');
+        setStatus('Microphone recording is not supported in this browser.');
         return;
     }
 
-    ensureRecognition();
     voiceState.enabled = true;
     setButtonState();
-    setStatus('Voice mode enabled. Questions will be read automatically.');
+
+    const agentUp = await checkVoiceAgentStatus();
+    if (agentUp) {
+        await initVoiceAgentSession();
+        setStatus('Voice mode enabled with VoiceAgent + Cartesia.');
+    } else {
+        setStatus('Voice mode enabled with Cartesia. VoiceAgent status unavailable.');
+    }
 }
 
 export function toggleVoiceMode() {
@@ -189,24 +378,27 @@ export function toggleVoiceMode() {
     setButtonState();
 
     if (voiceState.enabled) {
-        setStatus('Voice mode enabled. Click Read Question or Speak Answer.');
+        setStatus('Voice mode enabled.');
     } else {
-        window.speechSynthesis.cancel();
+        if (voiceState.recorder && voiceState.recorder.state === 'recording') {
+            voiceState.recorder.stop();
+        }
+        stopTimers();
         setStatus('Voice mode is off.');
     }
 }
 
-export function startVoiceInput() {
-    if (!voiceState.supported || !voiceState.enabled || !voiceState.recognition) return;
+export async function startVoiceInput() {
+    if (!voiceState.supported || !voiceState.enabled) return;
     if (voiceState.isListening) return;
 
     setStatus('Listening...');
-    voiceState.isListening = true;
     try {
-        voiceState.recognition.start();
-    } catch {
+        await beginRecording();
+    } catch (error) {
         voiceState.isListening = false;
-        setStatus('Microphone is already active.');
+        console.error('Recording failed:', error);
+        setStatus('Microphone error. Please allow microphone access.');
     }
 }
 

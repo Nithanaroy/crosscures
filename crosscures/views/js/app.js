@@ -35,7 +35,7 @@ window._speakCurrentQuestion = speakCurrentQuestion;
 
 // Boot
 async function init() {
-    initVoiceControls();
+    await initVoiceControls();
     await loadDataSourceInfo();
     await loadGeneratorStatus();
     await loadPatients();
