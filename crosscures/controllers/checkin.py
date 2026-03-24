@@ -7,20 +7,20 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
-from crosscures.models import (
+from models import (
     CheckinQuestion,
     CheckinResponse,
     CheckinSession,
     CheckinSummary,
     GeneratorMode,
 )
-from crosscures.services import (
+from services import (
     StaticQuestionnaireGenerator,
     LLMQuestionnaireGenerator,
     llm_is_available,
     llm_available_models,
 )
-from crosscures.repositories import (
+from repositories import (
     PatientDataProvider,
     MockPatientDataProvider,
     DuckDBPatientDataProvider,

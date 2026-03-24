@@ -7,8 +7,8 @@ Provides a QuestionnaireGenerator interface with two implementations:
 import json
 import logging
 from abc import ABC, abstractmethod
-from crosscures.models.schemas import CheckinQuestion, CheckinResponse, PatientProfile, QuestionType
-from crosscures.services.llm_client import chat_completion, is_available as llm_is_available, get_available_models
+from models.schemas import CheckinQuestion, CheckinResponse, PatientProfile, QuestionType
+from services.llm_client import chat_completion, is_available as llm_is_available, get_available_models
 from typing import Optional
 
 logger = logging.getLogger(__name__)

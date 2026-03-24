@@ -1,8 +1,8 @@
 """
 Data providers and session storage (Repository implementations)
 """
-from crosscures.repositories.base import PatientDataProvider
-from crosscures.models import PatientProfile, PatientCondition
+from repositories.base import PatientDataProvider
+from models import PatientProfile, PatientCondition
 from typing import Optional, List
 from datetime import datetime
 import uuid

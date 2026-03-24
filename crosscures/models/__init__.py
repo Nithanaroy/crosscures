@@ -1,5 +1,5 @@
 """Models package - Pydantic schemas and domain objects"""
-from crosscures.models.schemas import (
+from models.schemas import (
     QuestionType,
     GeneratorMode,
     CheckinQuestion,

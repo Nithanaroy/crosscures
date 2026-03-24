@@ -3,7 +3,7 @@ Repository base classes and interfaces
 """
 from abc import ABC, abstractmethod
 from typing import Optional, List
-from crosscures.models import PatientProfile
+from models import PatientProfile
 
 
 class PatientDataProvider(ABC):

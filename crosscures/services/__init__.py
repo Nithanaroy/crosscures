@@ -1,12 +1,12 @@
 """Services package - Business logic and generators"""
-from crosscures.services.generator import (
+from services.generator import (
     QuestionnaireGenerator,
     QuestionBank,
     StaticQuestionnaireGenerator,
     AdaptiveQuestionnaireGenerator,
     LLMQuestionnaireGenerator,
 )
-from crosscures.services.llm_client import (
+from services.llm_client import (
     is_available as llm_is_available,
     get_available_models as llm_available_models,
 )
