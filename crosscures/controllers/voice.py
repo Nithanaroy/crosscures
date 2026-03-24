@@ -4,7 +4,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from crosscures.services.cartesia_client import synthesize_tts_wav, transcribe_audio
+from services.cartesia_client import synthesize_tts_wav, transcribe_audio
 
 
 router = APIRouter()
