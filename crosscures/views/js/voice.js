@@ -360,25 +360,27 @@ export async function initVoiceControls() {
         return;
     }
 
-    voiceState.enabled = true;
+    voiceState.enabled = false;
     setButtonState();
-
-    const agentUp = await checkVoiceAgentStatus();
-    if (agentUp) {
-        await initVoiceAgentSession();
-        setStatus('Voice mode enabled with VoiceAgent + Cartesia.');
-    } else {
-        setStatus('Voice mode enabled with Cartesia. VoiceAgent status unavailable.');
-    }
+    setStatus('Voice mode is off. Click "Enable Voice" to activate.');
 }
 
-export function toggleVoiceMode() {
+export async function toggleVoiceMode() {
     if (!voiceState.supported) return;
     voiceState.enabled = !voiceState.enabled;
     setButtonState();
 
     if (voiceState.enabled) {
-        setStatus('Voice mode enabled.');
+        setStatus('Enabling voice...');
+        const agentUp = await checkVoiceAgentStatus();
+        if (agentUp && !voiceState.voiceAgentReady) {
+            await initVoiceAgentSession();
+            setStatus('Voice mode enabled with VoiceAgent + Cartesia.');
+        } else if (agentUp) {
+            setStatus('Voice mode enabled with VoiceAgent + Cartesia.');
+        } else {
+            setStatus('Voice mode enabled with Cartesia. VoiceAgent status unavailable.');
+        }
     } else {
         if (voiceState.recorder && voiceState.recorder.state === 'recording') {
             voiceState.recorder.stop();
