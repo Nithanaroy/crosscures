@@ -97,14 +97,17 @@ function renderReasoning() {
     }
 
     let html = '<div class="reasoning-thread">';
-    state.reasoningHistory.forEach((entry, index) => {
+    // Reverse chronological: latest reasoning at top
+    for (let i = state.reasoningHistory.length - 1; i >= 0; i--) {
+        const entry = state.reasoningHistory[i];
+        const stepNum = i + 1;
         const isCurrent = state.currentQuestion &&
             entry.question_id === state.currentQuestion.question_id;
         const isAnswered = entry.question_id in state.answeredQuestions;
         const stateClass = isCurrent ? 'reasoning-current' : (isAnswered ? 'reasoning-answered' : '');
 
         html += '<div class="reasoning-entry ' + stateClass + '">';
-        html += '<div class="reasoning-step">Step ' + (index + 1) + '</div>';
+        html += '<div class="reasoning-step">Step ' + stepNum + '</div>';
         html += '<div class="reasoning-question">' + truncate(entry.question_text, 80) + '</div>';
         html += '<div class="reasoning-text">' + escapeHtml(entry.reasoning) + '</div>';
 
@@ -114,12 +117,12 @@ function renderReasoning() {
         }
 
         html += '</div>';
-    });
+    }
     html += '</div>';
 
     container.innerHTML = html;
-    // Auto-scroll to latest
-    container.scrollTop = container.scrollHeight;
+    // Scroll to top to show latest
+    container.scrollTop = 0;
 }
 
 function getNodeState(node) {
