@@ -23,43 +23,31 @@ This MVP validates the core adaptive logic and provides an A/B comparison betwee
 
 ### Project Structure
 
-```
-crosscures/
-├── app.py                   # FastAPI entry point
-├── pyproject.toml            # uv project config
-├── views/
-│   └── index.html            # Web UI
-├── models/
-│   └── schemas.py            # Pydantic data models
-├── services/
-│   ├── generator.py          # QuestionnaireGenerator interface + implementations
-│   └── llm_client.py         # OpenRouter LLM client wrapper
-├── controllers/
-│   └── checkin.py            # API route handlers
-└── repositories/
-    ├── base.py               # Abstract data provider interface
-    └── providers.py          # Mock + DuckDB implementations
-```
+**Architecture Pattern: Layered MVC + Repository**
 
-Pattern: **MVC + Repository**. The `QuestionnaireGenerator` abstract interface has two implementations:
+- **Models Layer** (`models/`): Type-safe schemas and domain enums
+- **Services Layer** (`services/`): Business logic for question generation, LLM integration, and voice processing
+- **Controllers Layer** (`controllers/`): FastAPI route handlers that orchestrate services
+- **Data Layer** (`repositories/`): Abstract provider interface with mock and DuckDB implementations
+- **Presentation Layer** (`views/`): Single-page web application with vanilla JS
+
+**Question Generation Strategy** — The `QuestionnaireGenerator` abstract interface has three implementations:
 - `StaticQuestionnaireGenerator` -- hardcoded question bank with deterministic branching logic
-- `LLMQuestionnaireGenerator` -- calls OpenRouter to generate personalized questions with CoT reasoning
+- `AdaptiveQuestionnaireGenerator` -- enhanced static generator with smarter branching
+- `LLMQuestionnaireGenerator` -- calls OpenRouter to generate personalized questions with Chain-of-Thought reasoning
 
 ### Setup
 
-This project uses **uv workspaces**. From the repo root:
+This project uses **uv workspaces** with clean package-level imports for modularity. From the repo root:
 
 ```bash
-cd /Users/nipasuma/Projects/crosscures
+# cd  to `crosscures` sub-project folder, i.e. the parent folder of this README
 
 # Install all workspace dependencies (runs from repo root)
 uv sync
 
 # Start the API server
-uv run --package crosscures uvicorn crosscures.app:app --reload --port 8000
-
-# In a separate terminal, serve the web UI
-python -m http.server 8001 -d crosscures/views
+uv run uvicorn app:app --host 0.0.0.0 --reload --port 8000
 ```
 
 ### LLM Mode Setup (Optional)
@@ -165,8 +153,8 @@ curl -X POST http://localhost:8000/checkin/complete \
 **Test the generator directly:**
 
 ```python
-from crosscures.services import AdaptiveQuestionnaireGenerator
-from crosscures.models import PatientProfile, PatientCondition
+from services import AdaptiveQuestionnaireGenerator
+from models import PatientProfile, PatientCondition
 
 gen = AdaptiveQuestionnaireGenerator()
 patient = PatientProfile(
