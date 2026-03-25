@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showLoadingOverlay, hideLoadingOverlay } from './state.js';
+import { showLoadingOverlay, hideLoadingOverlay, showError } from './state.js';
 import { completeSession } from './api.js';
 import { switchSection } from './app.js';
 
@@ -16,7 +16,7 @@ export async function completeQuestionnaire() {
         displaySummary(data.summary);
     } catch (error) {
         console.error('Error completing check-in:', error);
-        alert('Error completing check-in');
+        showError('Failed to complete check-in: ' + error.message);
     } finally {
         hideLoadingOverlay();
     }

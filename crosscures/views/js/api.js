@@ -1,13 +1,27 @@
 import { API_BASE_URL } from './state.js';
 
+async function handleResponse(resp) {
+    if (!resp.ok) {
+        let message;
+        try {
+            const body = await resp.json();
+            message = body.detail || JSON.stringify(body);
+        } catch {
+            message = await resp.text() || resp.statusText;
+        }
+        throw new Error(`${resp.status}: ${message}`);
+    }
+    return resp.json();
+}
+
 export async function fetchDataSource() {
     const resp = await fetch(`${API_BASE_URL}/data-source`);
-    return resp.json();
+    return handleResponse(resp);
 }
 
 export async function fetchPatients() {
     const resp = await fetch(`${API_BASE_URL}/patients`);
-    return resp.json();
+    return handleResponse(resp);
 }
 
 export async function initializeSession(patientId, mode, model) {
@@ -18,7 +32,7 @@ export async function initializeSession(patientId, mode, model) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    return resp.json();
+    return handleResponse(resp);
 }
 
 export async function submitQuestionResponse(sessionId, questionId, responseValue) {
@@ -33,7 +47,7 @@ export async function submitQuestionResponse(sessionId, questionId, responseValu
             }
         })
     });
-    return resp.json();
+    return handleResponse(resp);
 }
 
 export async function completeSession(sessionId) {
@@ -42,10 +56,10 @@ export async function completeSession(sessionId) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId })
     });
-    return resp.json();
+    return handleResponse(resp);
 }
 
 export async function fetchGeneratorStatus() {
     const resp = await fetch(`${API_BASE_URL}/generator/status`);
-    return resp.json();
+    return handleResponse(resp);
 }

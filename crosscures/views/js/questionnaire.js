@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showLoadingOverlay, hideLoadingOverlay } from './state.js';
+import { showLoadingOverlay, hideLoadingOverlay, showError, hideError } from './state.js';
 import { submitQuestionResponse } from './api.js';
 import { renderSidePanel } from './tree.js';
 import { completeQuestionnaire } from './summary.js';
@@ -94,6 +94,7 @@ export function recordResponse(value, display, sourceEl = null) {
 export async function submitResponse() {
     if (state.submitting) return;
     state.submitting = true;
+    hideError();
     showLoadingOverlay('Submitting response...');
 
     try {
@@ -102,17 +103,18 @@ export async function submitResponse() {
         if (state.currentQuestion.question_type === 'text') {
             responseValue = document.getElementById('textInput').value;
             if (!responseValue.trim()) {
-                alert('Please enter a response');
+                showError('Please enter a response');
                 return;
             }
         } else {
             if (!(state.currentQuestion.question_id in state.allResponses)) {
-                alert('Please select an answer');
+                showError('Please select an answer');
                 return;
             }
             responseValue = state.allResponses[state.currentQuestion.question_id];
         }
 
+        hideError();
         const data = await submitQuestionResponse(
             state.currentSessionId,
             state.currentQuestion.question_id,
@@ -159,7 +161,7 @@ export async function submitResponse() {
         }
     } catch (error) {
         console.error('Error submitting response:', error);
-        alert('Error submitting response');
+        showError('Failed to submit response: ' + error.message);
     } finally {
         state.submitting = false;
         hideLoadingOverlay();

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showLoadingOverlay, hideLoadingOverlay } from './state.js';
+import { showLoadingOverlay, hideLoadingOverlay, showError, hideError } from './state.js';
 import { fetchPatients, fetchDataSource, fetchGeneratorStatus, initializeSession } from './api.js';
 import { renderPatientBanner } from './banner.js';
 import { renderSidePanel } from './tree.js';
@@ -86,6 +86,7 @@ async function selectPatient(patient) {
     if (state.submitting) return;
     state.submitting = true;
     state.currentPatient = patient;
+    hideError();
     showLoadingOverlay('Initializing check-in...');
     try {
         await initializeCheckin(patient.patient_id);
@@ -162,6 +163,6 @@ async function initializeCheckin(patientId) {
         switchSection('questionnaireSection');
     } catch (error) {
         console.error('Error initializing check-in:', error);
-        alert('Error starting check-in');
+        showError('Failed to start check-in: ' + error.message);
     }
 }

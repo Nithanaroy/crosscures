@@ -20,6 +20,7 @@ from services import (
     llm_is_available,
     llm_available_models,
 )
+from services.llm_client import LLMError
 from repositories import (
     PatientDataProvider,
     MockPatientDataProvider,
@@ -227,10 +228,15 @@ async def initialize_checkin(request: InitializeCheckinRequest):
     gen = llm_generator if mode == "llm" else static_generator
     
     # Generate adaptive questionnaire
-    if mode == "llm":
-        questions = gen.generate_questionnaire(patient, model=request.model)
-    else:
-        questions = gen.generate_questionnaire(patient)
+    try:
+        if mode == "llm":
+            questions = gen.generate_questionnaire(patient, model=request.model)
+        else:
+            questions = gen.generate_questionnaire(patient)
+    except LLMError as exc:
+        raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}")
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=502, detail=f"LLM returned invalid data: {exc}")
     
     # Create session
     session_id = str(uuid.uuid4())
@@ -296,21 +302,24 @@ async def submit_response(request: SubmitResponseRequest):
     
     # Move to next question
     next_index = session.current_question_index + 1
-    if session.generator_mode == "llm":
-        next_question, actual_index, reasoning = gen.get_next_question(
-            patient,
-            session.all_questions,
-            session.responses,
-            next_index,
-            model=session.llm_model,
-        )
-    else:
-        next_question, actual_index, reasoning = gen.get_next_question(
-            patient,
-            session.all_questions,
-            session.responses,
-            next_index
-        )
+    try:
+        if session.generator_mode == "llm":
+            next_question, actual_index, reasoning = gen.get_next_question(
+                patient,
+                session.all_questions,
+                session.responses,
+                next_index,
+                model=session.llm_model,
+            )
+        else:
+            next_question, actual_index, reasoning = gen.get_next_question(
+                patient,
+                session.all_questions,
+                session.responses,
+                next_index
+            )
+    except LLMError as exc:
+        raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}")
     
     # Collect skipped question IDs (those between next_index and actual_index)
     skipped = []

@@ -31,6 +31,18 @@ export function hideLoadingOverlay() {
     if (overlay) overlay.classList.remove('active');
 }
 
+export function showError(message) {
+    const banner = document.getElementById('errorBanner');
+    const text = document.getElementById('errorBannerText');
+    if (text) text.textContent = message;
+    if (banner) banner.style.display = 'block';
+}
+
+export function hideError() {
+    const banner = document.getElementById('errorBanner');
+    if (banner) banner.style.display = 'none';
+}
+
 export function resetState() {
     state.currentSessionId = null;
     state.currentQuestion = null;

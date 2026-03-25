@@ -449,29 +449,6 @@ def _parse_question(raw: dict) -> CheckinQuestion:
     )
 
 
-_FALLBACK_QUESTIONS = [
-    CheckinQuestion(
-        question_id="fallback_001",
-        question_text="How would you rate your overall health today? (1=Poor, 10=Excellent)",
-        question_type=QuestionType.SCALE_1_10,
-        condition_tag="general",
-        rationale="General health baseline",
-    ),
-    CheckinQuestion(
-        question_id="fallback_002",
-        question_text="Have you experienced any new symptoms or health concerns recently?",
-        question_type=QuestionType.YES_NO,
-        condition_tag="general",
-        rationale="Screen for new issues",
-    ),
-    CheckinQuestion(
-        question_id="fallback_003",
-        question_text="Is there anything else you would like your doctor to know before your visit?",
-        question_type=QuestionType.TEXT,
-        condition_tag="general",
-        rationale="Open-ended capture",
-    ),
-]
 
 
 class LLMQuestionnaireGenerator(QuestionnaireGenerator):
@@ -484,9 +461,6 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
         ]
 
         content = chat_completion(messages, json_mode=True, model=model)
-        if content is None:
-            logger.warning("LLM generation failed, using fallback questions")
-            return list(_FALLBACK_QUESTIONS)
 
         try:
             data = json.loads(content)
@@ -514,7 +488,7 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
                 except (json.JSONDecodeError, ValueError, TypeError):
                     pass
             logger.warning("LLM retry also failed, using fallback questions")
-            return list(_FALLBACK_QUESTIONS)
+            raise ValueError("LLM failed to generate valid questions after retry")
 
     def get_next_question(
         self,
@@ -560,9 +534,6 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
         ]
 
         content = chat_completion(messages, json_mode=True, model=model)
-        if content is None:
-            # Fallback: just return the next planned question without reasoning
-            return all_available_questions[current_index], current_index, None
 
         try:
             data = json.loads(content)
@@ -600,7 +571,5 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
             all_available_questions.insert(current_index, question)
             return question, current_index, reasoning
 
-        except (json.JSONDecodeError, ValueError, TypeError):
-            logger.warning("Failed to parse LLM next-question response, using planned question")
-
-        return all_available_questions[current_index], current_index, None
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            raise ValueError(f"Failed to parse LLM next-question response: {exc}")

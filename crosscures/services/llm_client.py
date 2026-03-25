@@ -122,9 +122,13 @@ def chat_completion(
     try:
         response = client.chat.completions.create(**kwargs)
         return response.choices[0].message.content
-    except Exception:
+    except Exception as exc:
         logger.exception("OpenRouter API call failed")
-        return None
+        raise LLMError(str(exc)) from exc
+
+
+class LLMError(Exception):
+    """Raised when an LLM API call fails."""
 
 
 def get_available_models() -> list[dict]:
