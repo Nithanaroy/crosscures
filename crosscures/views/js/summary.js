@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { showLoadingOverlay, hideLoadingOverlay } from './state.js';
 import { completeSession } from './api.js';
 import { switchSection } from './app.js';
 
@@ -9,12 +10,15 @@ export function formatAnswer(value) {
 }
 
 export async function completeQuestionnaire() {
+    showLoadingOverlay('Completing check-in...');
     try {
         const data = await completeSession(state.currentSessionId);
         displaySummary(data.summary);
     } catch (error) {
         console.error('Error completing check-in:', error);
         alert('Error completing check-in');
+    } finally {
+        hideLoadingOverlay();
     }
 }
 

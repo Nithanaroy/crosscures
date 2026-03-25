@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { showLoadingOverlay, hideLoadingOverlay } from './state.js';
 import { fetchPatients, fetchDataSource, fetchGeneratorStatus, initializeSession } from './api.js';
 import { renderPatientBanner } from './banner.js';
 import { renderSidePanel } from './tree.js';
@@ -85,10 +86,12 @@ async function selectPatient(patient) {
     if (state.submitting) return;
     state.submitting = true;
     state.currentPatient = patient;
+    showLoadingOverlay('Initializing check-in...');
     try {
         await initializeCheckin(patient.patient_id);
     } finally {
         state.submitting = false;
+        hideLoadingOverlay();
     }
 }
 

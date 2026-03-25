@@ -19,6 +19,18 @@ export const state = {
     reasoningHistory: [],
 };
 
+export function showLoadingOverlay(message) {
+    const overlay = document.getElementById('loadingOverlay');
+    const text = document.getElementById('loadingOverlayText');
+    if (text) text.textContent = message || 'Processing...';
+    if (overlay) overlay.classList.add('active');
+}
+
+export function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
 export function resetState() {
     state.currentSessionId = null;
     state.currentQuestion = null;

@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { showLoadingOverlay, hideLoadingOverlay } from './state.js';
 import { submitQuestionResponse } from './api.js';
 import { renderSidePanel } from './tree.js';
 import { completeQuestionnaire } from './summary.js';
@@ -93,6 +94,7 @@ export function recordResponse(value, display, sourceEl = null) {
 export async function submitResponse() {
     if (state.submitting) return;
     state.submitting = true;
+    showLoadingOverlay('Submitting response...');
 
     try {
         let responseValue;
@@ -160,6 +162,7 @@ export async function submitResponse() {
         alert('Error submitting response');
     } finally {
         state.submitting = false;
+        hideLoadingOverlay();
     }
 }
 
