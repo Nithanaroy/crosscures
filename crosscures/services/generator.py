@@ -8,7 +8,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from models.schemas import CheckinQuestion, CheckinResponse, PatientProfile, QuestionType
-from services.llm_client import chat_completion, is_available as llm_is_available, get_available_models
+from services.llm.provider import LLMProvider
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -452,7 +452,10 @@ def _parse_question(raw: dict) -> CheckinQuestion:
 
 
 class LLMQuestionnaireGenerator(QuestionnaireGenerator):
-    """Generates adaptive questionnaires using an LLM via OpenRouter."""
+    """Generates adaptive questionnaires using an LLM."""
+
+    def __init__(self, provider: LLMProvider):
+        self.provider = provider
 
     def generate_questionnaire(self, patient: PatientProfile, model: str | None = None) -> list[CheckinQuestion]:
         messages = [
@@ -460,7 +463,12 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
             {"role": "user", "content": _build_patient_description(patient)},
         ]
 
-        content = chat_completion(messages, json_mode=True, model=model)
+        logger.info("[GENERATE] Provider=%s  Model=%s", self.provider.name, model or self.provider.default_model)
+        logger.info("[GENERATE] System prompt (first 200 chars): %.200s", messages[0]["content"])
+        logger.info("[GENERATE] User prompt:\n%s", messages[1]["content"])
+
+        content = self.provider.chat_completion(messages, json_mode=True, model=model)
+        logger.info("[GENERATE] Raw LLM response:\n%s", content)
 
         try:
             data = json.loads(content)
@@ -468,6 +476,9 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
             questions = [_parse_question(q) for q in raw_questions]
             if not questions:
                 raise ValueError("Empty question list from LLM")
+            logger.info("[GENERATE] Parsed %d questions:", len(questions))
+            for i, q in enumerate(questions):
+                logger.info("  [%d] %s (%s) - %s", i, q.question_id, q.question_type.value, q.question_text)
             return questions
         except (json.JSONDecodeError, ValueError, TypeError) as exc:
             logger.warning("Failed to parse LLM response (%s), retrying once", exc)
@@ -477,7 +488,7 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
                 "role": "user",
                 "content": "That was not valid JSON. Please respond with ONLY a JSON object: {\"questions\": [...]}",
             })
-            content2 = chat_completion(messages, json_mode=True, model=model)
+            content2 = self.provider.chat_completion(messages, json_mode=True, model=model)
             if content2:
                 try:
                     data2 = json.loads(content2)
@@ -533,22 +544,33 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
             {"role": "user", "content": user_msg},
         ]
 
-        content = chat_completion(messages, json_mode=True, model=model)
+        logger.info("[NEXT_Q] Provider=%s  Model=%s  responses=%d  remaining=%d",
+                    self.provider.name, model or self.provider.default_model,
+                    len(responses_so_far), len(remaining))
+        logger.info("[NEXT_Q] User prompt:\n%s", user_msg)
+
+        content = self.provider.chat_completion(messages, json_mode=True, model=model)
+        logger.info("[NEXT_Q] Raw LLM response:\n%s", content)
 
         try:
             data = json.loads(content)
             reasoning = data.get("reasoning", "")
             action = data.get("action", "ask")
 
+            logger.info("[NEXT_Q] Action=%s  Reasoning=%s", action, reasoning)
+
             if action == "end":
+                logger.info("[NEXT_Q] LLM decided to END questionnaire")
                 return None, current_index, reasoning
 
             raw_q = data.get("question")
             if not raw_q:
+                logger.info("[NEXT_Q] No question in response, using planned index %d", current_index)
                 return all_available_questions[current_index], current_index, reasoning
 
             question = _parse_question(raw_q)
             question.rationale = question.rationale or reasoning
+            logger.info("[NEXT_Q] LLM chose: %s - %s", question.question_id, question.question_text)
 
             # Try to match by question_id first
             for i in range(current_index, len(all_available_questions)):

@@ -7,10 +7,10 @@ export function toggleTreePanel() {
     const btn = document.getElementById('treeToggleBtn');
     if (state.treePanelOpen) {
         panel.classList.add('open');
-        btn.textContent = state.generatorMode === 'llm' ? 'Hide Reasoning' : 'Hide Tree';
+        btn.textContent = (state.generatorMode === 'llm' || state.generatorMode === 'local') ? 'Hide Reasoning' : 'Hide Tree';
     } else {
         panel.classList.remove('open');
-        btn.textContent = state.generatorMode === 'llm' ? 'Show Reasoning' : 'Show Tree';
+        btn.textContent = (state.generatorMode === 'llm' || state.generatorMode === 'local') ? 'Show Reasoning' : 'Show Tree';
     }
 }
 
@@ -20,7 +20,7 @@ export function resetTreePanel() {
 }
 
 export function renderSidePanel() {
-    if (state.generatorMode === 'llm') {
+    if (state.generatorMode === 'llm' || state.generatorMode === 'local') {
         renderReasoning();
     } else {
         renderTree();
@@ -28,7 +28,7 @@ export function renderSidePanel() {
     // Toggle legend visibility based on mode
     const legend = document.querySelector('.tree-legend');
     if (legend) {
-        legend.style.display = state.generatorMode === 'llm' ? 'none' : 'flex';
+        legend.style.display = (state.generatorMode === 'llm' || state.generatorMode === 'local') ? 'none' : 'flex';
     }
 }
 

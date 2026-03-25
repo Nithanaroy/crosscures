@@ -17,10 +17,8 @@ from models import (
 from services import (
     StaticQuestionnaireGenerator,
     LLMQuestionnaireGenerator,
-    llm_is_available,
-    llm_available_models,
 )
-from services.llm_client import LLMError
+from services.llm import get_provider, LLMError
 from repositories import (
     PatientDataProvider,
     MockPatientDataProvider,
@@ -31,9 +29,8 @@ from repositories import (
 
 router = APIRouter()
 
-# Global services — dual generators
+# Global services
 static_generator = StaticQuestionnaireGenerator()
-llm_generator = LLMQuestionnaireGenerator()
 session_store = SessionStore()
 patient_data_provider: Optional[PatientDataProvider] = None
 
@@ -221,15 +218,19 @@ async def initialize_checkin(request: InitializeCheckinRequest):
         raise HTTPException(status_code=404, detail="Patient not found")
     
     # Select generator based on mode
-    mode = request.mode if request.mode in ("static", "llm") else "static"
-    if mode == "llm" and not llm_is_available():
-        raise HTTPException(status_code=400, detail="LLM mode unavailable: OPENROUTER_API_KEY not set")
-    
-    gen = llm_generator if mode == "llm" else static_generator
+    mode = request.mode if request.mode in ("static", "llm", "local") else "static"
+    if mode in ("llm", "local"):
+        provider = get_provider("cloud" if mode == "llm" else "local")
+        if not provider.is_available():
+            label = provider.name
+            raise HTTPException(status_code=400, detail=f"{label} unavailable")
+        gen = LLMQuestionnaireGenerator(provider)
+    else:
+        gen = static_generator
     
     # Generate adaptive questionnaire
     try:
-        if mode == "llm":
+        if mode in ("llm", "local"):
             questions = gen.generate_questionnaire(patient, model=request.model)
         else:
             questions = gen.generate_questionnaire(patient)
@@ -253,12 +254,14 @@ async def initialize_checkin(request: InitializeCheckinRequest):
     session_store.create_session(session_id, {"session": session})
     
     # Get first question
-    first_question, actual_index, reasoning = gen.get_next_question(
-        patient,
-        questions,
-        [],
-        0
-    )
+    if mode in ("llm", "local"):
+        first_question, actual_index, reasoning = gen.get_next_question(
+            patient, questions, [], 0, model=request.model,
+        )
+    else:
+        first_question, actual_index, reasoning = gen.get_next_question(
+            patient, questions, [], 0,
+        )
     session.current_question_index = actual_index
     session_store.update_session(session_id, {"session": session})
     
@@ -295,7 +298,12 @@ async def submit_response(request: SubmitResponseRequest):
     patient = patient_data_provider.get_patient(session.patient_id)
     
     # Select generator based on session mode
-    gen = llm_generator if session.generator_mode == "llm" else static_generator
+    mode = session.generator_mode
+    if mode in ("llm", "local"):
+        provider = get_provider("cloud" if mode == "llm" else "local")
+        gen = LLMQuestionnaireGenerator(provider)
+    else:
+        gen = static_generator
     
     # Record response
     session.responses.append(request.response)
@@ -303,7 +311,7 @@ async def submit_response(request: SubmitResponseRequest):
     # Move to next question
     next_index = session.current_question_index + 1
     try:
-        if session.generator_mode == "llm":
+        if mode in ("llm", "local"):
             next_question, actual_index, reasoning = gen.get_next_question(
                 patient,
                 session.all_questions,
@@ -316,7 +324,7 @@ async def submit_response(request: SubmitResponseRequest):
                 patient,
                 session.all_questions,
                 session.responses,
-                next_index
+                next_index,
             )
     except LLMError as exc:
         raise HTTPException(status_code=502, detail=f"LLM request failed: {exc}")
@@ -341,7 +349,7 @@ async def submit_response(request: SubmitResponseRequest):
     
     # Build updated tree if LLM mode (plan may have changed)
     updated_tree = None
-    if session.generator_mode == "llm":
+    if mode in ("llm", "local"):
         updated_tree = _build_question_tree(session.all_questions)
     
     return SubmitResponseResponse(
@@ -493,8 +501,12 @@ async def get_question_bank() -> dict:
 @router.get("/generator/status")
 async def generator_status() -> dict:
     """Report which generator modes are available and list models"""
+    cloud = get_provider("cloud")
+    local = get_provider("local")
     return {
         "static": True,
-        "llm": llm_is_available(),
-        "models": llm_available_models(),
+        "llm": cloud.is_available(),
+        "local": local.is_available(),
+        "models": cloud.get_models(),
+        "local_models": local.get_models(),
     }

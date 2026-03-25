@@ -137,7 +137,7 @@ export async function submitResponse() {
         state.currentQuestion = data.next_question;
 
         // If LLM mode returned reasoning for the next question, record it
-        if (data.reasoning && data.next_question && state.generatorMode === 'llm') {
+        if (data.reasoning && data.next_question && (state.generatorMode === 'llm' || state.generatorMode === 'local')) {
             state.reasoningHistory.push({
                 question_id: data.next_question.question_id,
                 question_text: data.next_question.question_text,

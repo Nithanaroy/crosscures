@@ -16,6 +16,7 @@ export const state = {
     generatorMode: 'static',
     selectedModel: null,
     availableModels: [],
+    availableLocalModels: [],
     reasoningHistory: [],
 };
 

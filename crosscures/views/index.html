@@ -26,11 +26,17 @@
                 <div class="mode-toggle" id="modeToggle">
                     <span class="mode-label">Generator:</span>
                     <button class="mode-btn active" data-mode="static" onclick="window._selectMode('static')">Static</button>
-                    <button class="mode-btn" data-mode="llm" onclick="window._selectMode('llm')">LLM</button>
+                    <button class="mode-btn" data-mode="llm" onclick="window._selectMode('llm')">Cloud LLM</button>
+                    <button class="mode-btn" data-mode="local" onclick="window._selectMode('local')">Local LLM</button>
                 </div>
                 <div class="model-select-row" id="modelSelectRow" style="display:none;">
-                    <span class="mode-label">Model:</span>
+                    <span class="mode-label">Cloud Model:</span>
                     <select id="modelSelect" class="model-select" onchange="window._selectModel(this.value)">
+                    </select>
+                </div>
+                <div class="model-select-row" id="localModelSelectRow" style="display:none;">
+                    <span class="mode-label">Local Model:</span>
+                    <select id="localModelSelect" class="model-select" onchange="window._selectModel(this.value)">
                     </select>
                 </div>
                 <div id="patientList" class="patient-list">

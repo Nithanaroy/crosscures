@@ -21,6 +21,8 @@ export async function loadGeneratorStatus() {
         const status = await fetchGeneratorStatus();
         const toggle = document.getElementById('modeToggle');
         if (!toggle) return;
+
+        // Cloud LLM button
         const llmBtn = toggle.querySelector('[data-mode="llm"]');
         if (llmBtn) {
             if (status.llm) {
@@ -31,7 +33,20 @@ export async function loadGeneratorStatus() {
                 llmBtn.title = 'Set OPENROUTER_API_KEY to enable';
             }
         }
-        // Populate model selector
+
+        // Local LLM button
+        const localBtn = toggle.querySelector('[data-mode="local"]');
+        if (localBtn) {
+            if (status.local) {
+                localBtn.disabled = false;
+                localBtn.title = '';
+            } else {
+                localBtn.disabled = true;
+                localBtn.title = 'Start a local LLM server (e.g. ollama serve)';
+            }
+        }
+
+        // Populate cloud model selector
         if (status.models && status.models.length > 0) {
             state.availableModels = status.models;
             const select = document.getElementById('modelSelect');
@@ -44,7 +59,22 @@ export async function loadGeneratorStatus() {
                     opt.title = m.note || '';
                     select.appendChild(opt);
                 });
-                state.selectedModel = status.models[0].id;
+            }
+        }
+
+        // Populate local model selector
+        if (status.local_models && status.local_models.length > 0) {
+            state.availableLocalModels = status.local_models;
+            const localSelect = document.getElementById('localModelSelect');
+            if (localSelect) {
+                localSelect.innerHTML = '';
+                status.local_models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.name;
+                    opt.title = m.note || '';
+                    localSelect.appendChild(opt);
+                });
             }
         }
     } catch (error) {
@@ -101,10 +131,21 @@ export function selectMode(mode) {
     document.querySelectorAll('#modeToggle button').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
-    // Show/hide model selector based on mode
+    // Show/hide model selectors based on mode
     const modelRow = document.getElementById('modelSelectRow');
-    if (modelRow) {
-        modelRow.style.display = mode === 'llm' ? 'flex' : 'none';
+    const localModelRow = document.getElementById('localModelSelectRow');
+    if (modelRow) modelRow.style.display = mode === 'llm' ? 'flex' : 'none';
+    if (localModelRow) localModelRow.style.display = mode === 'local' ? 'flex' : 'none';
+
+    // Set selectedModel based on active dropdown
+    if (mode === 'llm') {
+        const sel = document.getElementById('modelSelect');
+        if (sel && sel.value) state.selectedModel = sel.value;
+    } else if (mode === 'local') {
+        const sel = document.getElementById('localModelSelect');
+        if (sel && sel.value) state.selectedModel = sel.value;
+    } else {
+        state.selectedModel = null;
     }
 }
 
@@ -114,10 +155,11 @@ export function selectModel(modelId) {
 
 async function initializeCheckin(patientId) {
     try {
+        const useModel = state.generatorMode !== 'static' ? state.selectedModel : null;
         const data = await initializeSession(
             patientId,
             state.generatorMode,
-            state.generatorMode === 'llm' ? state.selectedModel : null
+            useModel
         );
 
         state.currentSessionId = data.session_id;
@@ -138,7 +180,7 @@ async function initializeCheckin(patientId) {
         state.reasoningHistory = [];
 
         // If LLM mode returned first_reasoning, push it
-        if (data.first_reasoning && data.mode === 'llm') {
+        if (data.first_reasoning && (data.mode === 'llm' || data.mode === 'local')) {
             state.reasoningHistory.push({
                 question_id: data.first_question.question_id,
                 question_text: data.first_question.question_text,
@@ -149,7 +191,7 @@ async function initializeCheckin(patientId) {
         // Update side panel header and toggle button text
         const panelHeader = document.querySelector('.tree-panel-header span');
         const toggleBtn = document.getElementById('treeToggleBtn');
-        if (state.generatorMode === 'llm') {
+        if (state.generatorMode === 'llm' || state.generatorMode === 'local') {
             if (panelHeader) panelHeader.textContent = 'LLM Reasoning';
             if (toggleBtn) toggleBtn.textContent = 'Show Reasoning';
         } else {

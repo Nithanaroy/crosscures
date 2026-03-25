@@ -20,6 +20,7 @@ class GeneratorMode(str, Enum):
     """Which question generation engine to use"""
     STATIC = "static"
     LLM = "llm"
+    LOCAL = "local"
 
 
 class CheckinQuestion(BaseModel):
