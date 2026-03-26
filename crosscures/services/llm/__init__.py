@@ -6,6 +6,7 @@ from models.constants import PROJECT_HOME
 from services.llm.errors import LLMError
 from services.llm.provider import LLMProvider
 from services.llm.cloud_provider import CloudLLMProvider
+from services.llm.gemini_provider import GeminiLLMProvider
 from services.llm.local_provider import LocalLLMProvider
 
 logger = logging.getLogger(__name__)
@@ -18,10 +19,12 @@ except Exception:
 
 # Singleton provider instances
 _cloud = CloudLLMProvider()
+_gemini = GeminiLLMProvider()
 _local = LocalLLMProvider()
 
 _PROVIDERS: dict[str, LLMProvider] = {
     "cloud": _cloud,
+    "gemini": _gemini,
     "local": _local,
 }
 
@@ -38,6 +41,7 @@ __all__ = [
     "LLMError",
     "LLMProvider",
     "CloudLLMProvider",
+    "GeminiLLMProvider",
     "LocalLLMProvider",
     "get_provider",
 ]
