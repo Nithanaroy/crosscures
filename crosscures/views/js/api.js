@@ -35,16 +35,15 @@ export async function initializeSession(patientId, mode, model) {
     return handleResponse(resp);
 }
 
-export async function submitQuestionResponse(sessionId, questionId, responseValue) {
+export async function submitQuestionResponse(sessionId, questionId, responseValue, notes) {
+    const response = { question_id: questionId, response_value: responseValue };
+    if (notes) response.notes = notes;
     const resp = await fetch(`${API_BASE_URL}/checkin/submit-response`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             session_id: sessionId,
-            response: {
-                question_id: questionId,
-                response_value: responseValue
-            }
+            response
         })
     });
     return handleResponse(resp);

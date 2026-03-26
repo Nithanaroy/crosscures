@@ -43,12 +43,23 @@ export function displayQuestion() {
     onQuestionDisplayed();
 }
 
+function notesAreaHtml(questionId) {
+    const saved = state.allNotes[questionId] || '';
+    return `
+        <div class="notes-area-wrapper">
+            <label class="notes-area-label" for="notesInput">Additional notes (optional):</label>
+            <textarea class="notes-input" id="notesInput" placeholder="Add any details or context here..." oninput="window._saveNotes(this.value)">${saved}</textarea>
+        </div>
+    `;
+}
+
 function displayYesNo(container) {
     container.innerHTML = `
         <div class="yes-no-buttons">
             <button class="btn" onclick="window._recordResponse(true, 'Yes', this)">Yes</button>
             <button class="btn" onclick="window._recordResponse(false, 'No', this)">No</button>
         </div>
+        ${notesAreaHtml(state.currentQuestion.question_id)}
     `;
 }
 
@@ -58,6 +69,7 @@ function displayScale(container) {
         html += `<button class="scale-btn" onclick="window._recordResponse(${i}, '${i}', this)">${i}</button>`;
     }
     html += '</div>';
+    html += notesAreaHtml(state.currentQuestion.question_id);
     container.innerHTML = html;
 }
 
@@ -67,6 +79,7 @@ function displayMultipleChoice(container) {
         html += `<button class="option-btn" onclick="window._recordResponse('${option}', '${option}', this)">${option}</button>`;
     });
     html += '</div>';
+    html += notesAreaHtml(state.currentQuestion.question_id);
     container.innerHTML = html;
 }
 
@@ -91,6 +104,12 @@ export function recordResponse(value, display, sourceEl = null) {
     document.getElementById('completeBtn').style.display = 'none';
 }
 
+export function saveNotes(value) {
+    if (state.currentQuestion) {
+        state.allNotes[state.currentQuestion.question_id] = value;
+    }
+}
+
 export async function submitResponse() {
     if (state.submitting) return;
     state.submitting = true;
@@ -99,6 +118,7 @@ export async function submitResponse() {
 
     try {
         let responseValue;
+        let notes = null;
 
         if (state.currentQuestion.question_type === 'text') {
             responseValue = document.getElementById('textInput').value;
@@ -112,13 +132,18 @@ export async function submitResponse() {
                 return;
             }
             responseValue = state.allResponses[state.currentQuestion.question_id];
+            const notesEl = document.getElementById('notesInput');
+            if (notesEl && notesEl.value.trim()) {
+                notes = notesEl.value.trim();
+            }
         }
 
         hideError();
         const data = await submitQuestionResponse(
             state.currentSessionId,
             state.currentQuestion.question_id,
-            responseValue
+            responseValue,
+            notes
         );
 
         state.answeredQuestions[state.currentQuestion.question_id] = responseValue;

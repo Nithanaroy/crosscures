@@ -334,6 +334,38 @@ body {
     border-color: #667eea;
 }
 
+.notes-area-wrapper {
+    margin-top: 20px;
+}
+
+.notes-area-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 6px;
+}
+
+.notes-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    color: #333;
+    resize: vertical;
+    min-height: 60px;
+    background: #fafafa;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.notes-input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+}
+
 .navigation {
     display: flex;
     gap: 12px;

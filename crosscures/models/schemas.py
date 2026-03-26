@@ -40,6 +40,7 @@ class CheckinResponse(BaseModel):
     """Patient's response to a question"""
     question_id: str
     response_value: Any
+    notes: Optional[str] = None  # Free-text elaboration from the patient
 
 
 class PatientCondition(BaseModel):

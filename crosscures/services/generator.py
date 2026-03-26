@@ -523,7 +523,10 @@ class LLMQuestionnaireGenerator(QuestionnaireGenerator):
         for resp in responses_so_far:
             q = next((q for q in all_available_questions if q.question_id == resp.question_id), None)
             q_text = q.question_text if q else resp.question_id
-            answered_text += f"  Q: {q_text}\n  A: {resp.response_value}\n\n"
+            answered_text += f"  Q: {q_text}\n  A: {resp.response_value}\n"
+            if resp.notes and resp.notes.strip():
+                answered_text += f"  Patient notes: {resp.notes.strip()}\n"
+            answered_text += "\n"
 
         remaining = all_available_questions[current_index:]
         remaining_text = "\n".join(

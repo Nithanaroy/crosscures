@@ -1,6 +1,6 @@
 import { resetState } from './state.js';
 import { loadDataSourceInfo, loadPatients, loadGeneratorStatus, selectMode, selectModel } from './patients.js';
-import { recordResponse, submitResponse } from './questionnaire.js';
+import { recordResponse, submitResponse, saveNotes } from './questionnaire.js';
 import { toggleTreePanel, resetTreePanel } from './tree.js';
 import { hidePatientBanner } from './banner.js';
 import { initVoiceControls, toggleVoiceMode, startVoiceInput, speakCurrentQuestion } from './voice.js';
@@ -20,6 +20,7 @@ function backToPatients() {
 // Expose handlers for inline onclick attributes
 window._recordResponse = recordResponse;
 window._submitResponse = submitResponse;
+window._saveNotes = saveNotes;
 window._completeQuestionnaire = async () => {
     const { completeQuestionnaire } = await import('./summary.js');
     await completeQuestionnaire();

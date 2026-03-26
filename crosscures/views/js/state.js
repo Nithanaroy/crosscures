@@ -7,6 +7,7 @@ export const state = {
     currentQuestion: null,
     sessionData: null,
     allResponses: {},
+    allNotes: {},
     answeredCount: 0,
     submitting: false,
     questionTree: [],
@@ -48,6 +49,7 @@ export function resetState() {
     state.currentSessionId = null;
     state.currentQuestion = null;
     state.allResponses = {};
+    state.allNotes = {};
     state.answeredCount = 0;
     state.questionTree = [];
     state.answeredQuestions = {};
