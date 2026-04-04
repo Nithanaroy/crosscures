@@ -25,3 +25,6 @@ wheels/
 data/*
 !data/.gitkeep
 misc/*
+crosscures_v2/backend/crosscures.db
+crosscures_v2/frontend/.next
+crosscures_v2/frontend/node_modules
