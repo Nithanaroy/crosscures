@@ -14,24 +14,29 @@ from crosscures_v2.events import bus as event_bus
 from crosscures_v2.events.models import EventType, EventSource
 
 
-BRIEF_SYSTEM_PROMPT = """You are CrossCures, a clinical AI assistant. Generate a concise, structured pre-visit physician brief based on the patient data provided. 
+BRIEF_SYSTEM_PROMPT = """You are CrossCures, a clinical AI assistant. Generate a concise, structured pre-visit physician brief based on the patient data provided.
+
+A numbered Source Index is included below the patient data. Annotate every clinical claim with its source ref inline, e.g. "HbA1c 8.2% [S3]". Use only refs from the provided index.
 
 Output ONLY valid JSON with this exact structure:
 {
-  "patient_snapshot": "3-5 bullet points about chronic conditions, active medications, known allergies",
-  "symptom_trends": "14-day symptom trajectory, notable changes — narrative plus any notable patterns",
-  "wearable_highlights": "HRV, sleep, SpO2 anomalies if available, otherwise null",
-  "medication_adherence": "Adherence rate per medication as reported by patient",
-  "patient_concerns": "Verbatim high-priority patient-reported concerns",
-  "suggested_discussion_points": ["Point 1", "Point 2", "Point 3"]
+  "patient_snapshot": "3-5 bullet points about chronic conditions, active medications, known allergies — annotate each fact with its source ref, e.g. [S1]",
+  "symptom_trends": "14-day symptom trajectory with source refs, e.g. '...reported worsening fatigue [S5]'",
+  "wearable_highlights": "HRV, sleep, SpO2 anomalies with source refs if available, otherwise null",
+  "medication_adherence": "Adherence rate per medication with source refs as reported by patient",
+  "patient_concerns": "Verbatim high-priority patient-reported concerns with source refs",
+  "suggested_discussion_points": ["Point 1 [S2]", "Point 2 [S4]", "Point 3"],
+  "citations": ["S1", "S3", "S5"]
 }
+
+The \"citations\" array must list every source ref used anywhere in the brief.
 
 Rules:
 - Do NOT make diagnostic conclusions
 - Do NOT recommend dose changes
 - All claims must be traceable to the provided data
 - Use plain clinical English
-- If data is missing for a section, say "No data available for this period"
+- If data is missing for a section, say \"No data available for this period\"
 """
 
 
@@ -67,6 +72,7 @@ def generate_brief(patient_id: str, appointment_id: str, db: Session, force_rege
 
     # Get recent symptom logs
     since_14d = datetime.utcnow() - timedelta(days=14)
+    sources, source_index_text = _build_source_catalog(patient_id, db, since_14d)
     symptom_logs = db.query(SymptomLogDB).filter(
         SymptomLogDB.patient_id == patient_id,
         SymptomLogDB.submitted_at >= since_14d,
@@ -101,6 +107,8 @@ Active prescriptions:
 Memory highlights:
 {ctx['memory_highlights']}
 
+{source_index_text}
+
 Generate the pre-visit brief as structured JSON."""
 
     try:
@@ -132,6 +140,33 @@ Generate the pre-visit brief as structured JSON."""
             "suggested_discussion_points": ["Review recent symptom logs", "Check medication adherence"],
         }
 
+    # Normalize multi-ref brackets like [S1, S2] → [S1][S2] in all section text
+    # so the frontend split regex and the auto-scan both see only single-ref tokens.
+    if isinstance(sections, dict):
+        sections = _normalize_sections(sections)
+
+    # Extract and resolve citations from LLM response
+    raw_citation_refs = sections.pop("citations", []) if isinstance(sections, dict) else []
+    ref_index = {s["ref"]: s for s in sources}
+    if isinstance(raw_citation_refs, list):
+        resolved_citations = [ref_index[r] for r in raw_citation_refs if r in ref_index]
+    else:
+        resolved_citations = []
+
+    # Auto-collect any [Sn] refs inlined in text but omitted from the LLM citations array
+    import re as _re
+    seen_refs = {c["ref"] for c in resolved_citations}
+    for section_value in (sections.values() if isinstance(sections, dict) else []):
+        texts = section_value if isinstance(section_value, list) else [section_value]
+        for text in texts:
+            if not isinstance(text, str):
+                continue
+            for ref in _re.findall(r'\[S(\d+)\]', text):
+                key = f"S{ref}"
+                if key not in seen_refs and key in ref_index:
+                    resolved_citations.append(ref_index[key])
+                    seen_refs.add(key)
+
     sections = {
         "patient_summary": patient_summary_for_physician,
         **(sections or {}),
@@ -141,7 +176,7 @@ Generate the pre-visit brief as structured JSON."""
         brief = existing_brief
         brief.generated_at = datetime.utcnow()
         brief.sections = sections
-        brief.citations = []
+        brief.citations = resolved_citations
         brief.delivery_status = "queued"
         brief.delivered_at = None
         brief.acknowledged_at = None
@@ -152,7 +187,7 @@ Generate the pre-visit brief as structured JSON."""
             appointment_id=appointment_id,
             generated_at=datetime.utcnow(),
             sections=sections,
-            citations=[],
+            citations=resolved_citations,
             delivery_status="queued",
         )
         db.add(brief)
@@ -187,6 +222,143 @@ def _brief_to_dict(brief: PhysicianBriefDB) -> dict:
         "citations": brief.citations or [],
         "delivery_status": brief.delivery_status,
     }
+
+
+def _normalize_inline_refs(text: str) -> str:
+    """Expand multi-ref brackets into sequential single-ref tokens.
+
+    Examples:
+      '[S1, S2]'   -> '[S1][S2]'
+      '[S3,S4,S5]' -> '[S3][S4][S5]'
+      '[S1]'       -> '[S1]'  (unchanged)
+    """
+    import re
+    def _expand(m: re.Match) -> str:
+        parts = re.split(r'[,;]\s*', m.group(1))
+        valid = [p.strip() for p in parts if re.fullmatch(r'S\d+', p.strip())]
+        return ''.join(f'[{p}]' for p in valid) if valid else m.group(0)
+    # Match brackets containing one or more comma/semicolon-separated Sn refs
+    return re.sub(r'\[(S\d+(?:[,;]\s*S\d+)+)\]', _expand, text)
+
+
+def _normalize_sections(sections: dict) -> dict:
+    """Apply _normalize_inline_refs to every string value in the sections dict."""
+    out = {}
+    for k, v in sections.items():
+        if isinstance(v, list):
+            out[k] = [_normalize_inline_refs(item) if isinstance(item, str) else item for item in v]
+        elif isinstance(v, str):
+            out[k] = _normalize_inline_refs(v)
+        else:
+            out[k] = v
+    return out
+
+
+def _build_source_catalog(patient_id: str, db: Session, since_14d: datetime) -> tuple:
+    """Build a numbered source catalog for citation anchoring in the LLM prompt.
+
+    Returns (sources_list, source_index_text). Each entry in sources_list is a dict
+    with a 'ref' key (e.g. 'S1') and full provenance metadata. The source_index_text
+    is formatted for inclusion in the LLM user message.
+    """
+    sources = []
+    idx = 1
+
+    # Health records — conditions, notes, labs, meds (up to 30 most recent)
+    records = db.query(HealthRecordDB).filter(
+        HealthRecordDB.patient_id == patient_id,
+    ).order_by(HealthRecordDB.occurred_at.desc(), HealthRecordDB.created_at.desc()).limit(30).all()
+
+    for r in records:
+        ref = f"S{idx}"
+        if r.occurred_at:
+            date_str = r.occurred_at.strftime("%Y-%m-%d")
+        elif r.created_at:
+            date_str = r.created_at.strftime("%Y-%m-%d")
+        else:
+            date_str = "unknown date"
+        source_label = r.source_name or "EHR"
+        sources.append({
+            "ref": ref,
+            "type": "health_record",
+            "resource_type": r.resource_type,
+            "record_id": r.id,
+            "source_name": r.source_name,
+            "date": date_str,
+            "label": f"{r.display_text} [{r.resource_type} — {source_label}, {date_str}]",
+        })
+        idx += 1
+
+    # Active prescriptions
+    prescriptions = db.query(PrescriptionDB).filter(
+        PrescriptionDB.patient_id == patient_id,
+    ).all()
+    for p in prescriptions:
+        ref = f"S{idx}"
+        prescriber = p.prescribing_physician or "unknown prescriber"
+        sources.append({
+            "ref": ref,
+            "type": "prescription",
+            "prescription_id": p.id,
+            "medication_name": p.medication_name,
+            "prescribing_physician": p.prescribing_physician,
+            "date": str(p.start_date),
+            "label": f"Rx: {p.medication_name} {p.dose} {p.frequency} — prescribed by {prescriber} on {p.start_date}",
+        })
+        idx += 1
+
+    # Symptom check-in logs (last 14 days)
+    symptom_logs = db.query(SymptomLogDB).filter(
+        SymptomLogDB.patient_id == patient_id,
+        SymptomLogDB.submitted_at >= since_14d,
+    ).order_by(SymptomLogDB.session_date.desc()).all()
+    for log in symptom_logs:
+        ref = f"S{idx}"
+        sources.append({
+            "ref": ref,
+            "type": "symptom_log",
+            "log_id": log.id,
+            "date": str(log.session_date),
+            "label": f"Patient symptom check-in on {log.session_date} (CrossCures app)",
+        })
+        idx += 1
+
+    # Wearable data — one citation entry per metric type
+    wearable_samples = db.query(WearableSampleDB).filter(
+        WearableSampleDB.patient_id == patient_id,
+        WearableSampleDB.start_date >= since_14d,
+    ).order_by(WearableSampleDB.start_date.desc()).all()
+    wearable_by_type: dict = {}
+    for s in wearable_samples:
+        wearable_by_type.setdefault(s.quantity_type, []).append(s)
+    for qt, samples in wearable_by_type.items():
+        ref = f"S{idx}"
+        earliest = min(s.start_date for s in samples)
+        latest = max(s.start_date for s in samples)
+        device = samples[0].source_name or "wearable device"
+        sources.append({
+            "ref": ref,
+            "type": "wearable",
+            "quantity_type": qt,
+            "source_name": device,
+            "date_range": f"{earliest.strftime('%Y-%m-%d')} to {latest.strftime('%Y-%m-%d')}",
+            "sample_count": len(samples),
+            "label": (
+                f"Wearable {qt} — {device}, "
+                f"{earliest.strftime('%Y-%m-%d')} to {latest.strftime('%Y-%m-%d')} "
+                f"({len(samples)} samples)"
+            ),
+        })
+        idx += 1
+
+    if not sources:
+        return [], "No sources available."
+
+    lines = ["Source Index (annotate each claim with its source ref, e.g. [S1]):"]
+    for s in sources:
+        lines.append(f"  [{s['ref']}] {s['label']}")
+
+    return sources, "\n".join(lines)
 
 
 def _build_patient_summary_for_physician(
