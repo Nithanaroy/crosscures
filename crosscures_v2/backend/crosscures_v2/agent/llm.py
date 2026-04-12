@@ -9,10 +9,6 @@ from crosscures_v2.config import get_settings
 from crosscures_v2.db_models import AuditEntryDB
 from sqlalchemy.orm import Session
 
-def get_client() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=get_settings().anthropic_api_key)
-
-
 class LLMResponse:
     def __init__(self, content: str, model: str, input_tokens: int, output_tokens: int, latency_ms: int, call_id: str):
         self.content = content
@@ -28,6 +24,13 @@ class LLMUnavailableError(Exception):
         self.cause = cause
         self.retryable = False
         super().__init__(f"LLM unavailable: {cause}")
+
+
+def get_client() -> anthropic.Anthropic:
+    api_key = get_settings().anthropic_api_key
+    if not api_key:
+        raise LLMUnavailableError(cause="ANTHROPIC_API_KEY is not configured")
+    return anthropic.Anthropic(api_key=api_key)
 
 
 def call_llm(

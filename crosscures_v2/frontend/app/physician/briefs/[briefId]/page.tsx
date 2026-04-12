@@ -8,6 +8,7 @@ import { cn, formatDatetime } from "@/lib/utils";
 import PhysicianLayout from "@/components/PhysicianLayout";
 
 const SECTION_ICONS: Record<string, any> = {
+  patient_summary: User,
   patient_snapshot: User,
   symptom_trends: Activity,
   wearable_highlights: Heart,
@@ -17,6 +18,7 @@ const SECTION_ICONS: Record<string, any> = {
 };
 
 const SECTION_TITLES: Record<string, string> = {
+  patient_summary: "Patient Summary for Physician",
   patient_snapshot: "Patient Snapshot",
   symptom_trends: "Symptom Trends (14 days)",
   wearable_highlights: "Wearable Highlights",
