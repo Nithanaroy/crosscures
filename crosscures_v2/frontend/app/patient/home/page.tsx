@@ -20,6 +20,7 @@ export default function PatientHome() {
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [briefActionLoading, setBriefActionLoading] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -174,21 +175,45 @@ export default function PatientHome() {
               <div className="flex flex-col gap-2">
                 {!nextAppointment.brief_generated ? (
                   <button
+                    disabled={briefActionLoading}
                     onClick={async () => {
                       try {
+                        setBriefActionLoading(true);
                         await patientApi.generateBrief(nextAppointment.id);
                         const r = await patientApi.getAppointments();
                         setAppointments(r.data.appointments || []);
                       } catch (e: any) {
                         alert(e.response?.data?.detail || "Failed to generate brief");
+                      } finally {
+                        setBriefActionLoading(false);
                       }
                     }}
                     className="text-xs btn-secondary py-2 px-3"
                   >
-                    Generate Brief
+                    {briefActionLoading ? "Generating..." : "Generate Brief"}
                   </button>
                 ) : (
-                  <span className="text-xs badge bg-green-100 text-green-700">Brief Ready</span>
+                  <>
+                    <span className="text-xs badge bg-green-100 text-green-700">Brief Ready</span>
+                    <button
+                      disabled={briefActionLoading}
+                      onClick={async () => {
+                        try {
+                          setBriefActionLoading(true);
+                          await patientApi.generateBrief(nextAppointment.id, true);
+                          const r = await patientApi.getAppointments();
+                          setAppointments(r.data.appointments || []);
+                        } catch (e: any) {
+                          alert(e.response?.data?.detail || "Failed to regenerate brief");
+                        } finally {
+                          setBriefActionLoading(false);
+                        }
+                      }}
+                      className="text-xs btn-secondary py-2 px-3"
+                    >
+                      {briefActionLoading ? "Regenerating..." : "Regenerate Brief"}
+                    </button>
+                  </>
                 )}
                 <Link href="/patient/clinic" className="text-xs btn-primary py-2 px-3">
                   Open Clinic

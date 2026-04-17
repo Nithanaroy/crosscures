@@ -112,13 +112,16 @@ def get_brief(
         raise HTTPException(status_code=404, detail="Brief not found")
     _verify_patient_link(user.id, brief.patient_id, db)
     patient = db.query(UserDB).filter(UserDB.id == brief.patient_id).first()
+    sections = dict(brief.sections or {})
+    if "patient_summary" not in sections:
+        sections["patient_summary"] = sections.get("patient_snapshot") or "No patient summary available"
     return {
         "brief_id": brief.id,
         "patient_id": brief.patient_id,
         "patient_name": patient.full_name if patient else "Unknown",
         "appointment_id": brief.appointment_id,
         "generated_at": brief.generated_at.isoformat(),
-        "sections": brief.sections,
+        "sections": sections,
         "citations": brief.citations or [],
         "delivery_status": brief.delivery_status,
         "acknowledged_at": brief.acknowledged_at.isoformat() if brief.acknowledged_at else None,
@@ -203,6 +206,9 @@ def _verify_patient_link(physician_id: str, patient_id: str, db: Session):
 
 
 def _brief_summary(b: PhysicianBriefDB) -> dict:
+    sections = dict(b.sections or {})
+    if "patient_summary" not in sections:
+        sections["patient_summary"] = sections.get("patient_snapshot") or "No patient summary available"
     return {
         "brief_id": b.id,
         "patient_id": b.patient_id,
@@ -210,7 +216,7 @@ def _brief_summary(b: PhysicianBriefDB) -> dict:
         "generated_at": b.generated_at.isoformat(),
         "delivery_status": b.delivery_status,
         "acknowledged_at": b.acknowledged_at.isoformat() if b.acknowledged_at else None,
-        "sections_preview": {k: (str(v)[:100] if v else None) for k, v in (b.sections or {}).items()},
+        "sections_preview": {k: (str(v)[:100] if v else None) for k, v in sections.items()},
     }
 
 

@@ -269,11 +269,12 @@ def create_appointment(
 @router.post("/appointments/{appointment_id}/generate-brief")
 def generate_appointment_brief(
     appointment_id: str,
+    force: bool = False,
     user: UserDB = Depends(require_patient),
     db: Session = Depends(get_db),
 ):
     try:
-        brief = generate_brief(user.id, appointment_id, db)
+        brief = generate_brief(user.id, appointment_id, db, force_regenerate=force)
         return {"brief": brief}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -54,7 +54,10 @@ export const patientApi = {
   
   getAppointments: () => api.get('/v1/patient/appointments'),
   createAppointment: (data: AppointmentCreateRequest) => api.post('/v1/patient/appointments', data),
-  generateBrief: (appointmentId: string) => api.post(`/v1/patient/appointments/${appointmentId}/generate-brief`),
+  generateBrief: (appointmentId: string, force = false) =>
+    api.post(`/v1/patient/appointments/${appointmentId}/generate-brief`, null, {
+      params: { force },
+    }),
   
   startClinicSession: (data: { appointment_id?: string; audio_enabled: boolean }) =>
     api.post('/v1/patient/clinic/session/start', data),
