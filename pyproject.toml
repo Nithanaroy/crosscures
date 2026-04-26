@@ -6,8 +6,7 @@ requires-python = ">=3.12"
 
 [tool.uv.workspace]
 members = [
-    "crosscures",
-    "crosscures_v2/backend",
+    "backend",
     "ehrshots",
     "epic",
     "medalign",
