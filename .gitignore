@@ -29,3 +29,4 @@ crosscures_v2/backend/crosscures.db
 crosscures_v2/frontend/.next
 crosscures_v2/frontend/node_modules
 crosscures_v2/frontend/tsconfig.tsbuildinfo
+crosscures_v2/offline_eval/results
