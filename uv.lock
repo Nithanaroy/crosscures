@@ -18,6 +18,7 @@ members = [
     "ehrshots",
     "epic",
     "medalign",
+    "offline-eval",
     "voice-agent",
 ]
 
@@ -480,26 +481,16 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
 ]
 
-[package.optional-dependencies]
-eval = [
-    { name = "duckdb" },
-    { name = "openai" },
-    { name = "openpyxl" },
-]
-
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = ">=23.2.1" },
     { name = "alembic", specifier = ">=1.13.0" },
     { name = "anthropic", specifier = ">=0.28.0" },
     { name = "bcrypt", specifier = ">=4.0.0,<4.1" },
-    { name = "duckdb", marker = "extra == 'eval'", specifier = ">=1.0.0" },
     { name = "email-validator", specifier = ">=2.1.0" },
     { name = "fastapi", specifier = ">=0.111.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "numpy", specifier = ">=1.26.4" },
-    { name = "openai", marker = "extra == 'eval'", specifier = ">=1.30.0" },
-    { name = "openpyxl", marker = "extra == 'eval'", specifier = ">=3.1.0" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pydantic", specifier = ">=2.7.0" },
     { name = "pydantic-settings", specifier = ">=2.2.0" },
@@ -510,7 +501,6 @@ requires-dist = [
     { name = "sqlalchemy", specifier = ">=2.0.30" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30.0" },
 ]
-provides-extras = ["eval"]
 
 [[package]]
 name = "crosscures-workspace"
@@ -1597,6 +1587,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a5/55/6e1a61ded7af8df04016d81b5b02daa59f2ea9252ee0397cb9f631efe9e5/numpy-2.4.2-cp314-cp314t-win32.whl", hash = "sha256:8c50dd1fc8826f5b26a5ee4d77ca55d88a895f4e4819c7ecc2a9f5905047a443", size = 6153937, upload-time = "2026-01-31T23:12:47.229Z" },
     { url = "https://files.pythonhosted.org/packages/45/aa/fa6118d1ed6d776b0983f3ceac9b1a5558e80df9365b1c3aa6d42bf9eee4/numpy-2.4.2-cp314-cp314t-win_amd64.whl", hash = "sha256:fcf92bee92742edd401ba41135185866f7026c502617f422eb432cfeca4fe236", size = 12631844, upload-time = "2026-01-31T23:12:48.997Z" },
     { url = "https://files.pythonhosted.org/packages/32/0a/2ec5deea6dcd158f254a7b372fb09cfba5719419c8d66343bab35237b3fb/numpy-2.4.2-cp314-cp314t-win_arm64.whl", hash = "sha256:1f92f53998a17265194018d1cc321b2e96e900ca52d54c7c77837b71b9465181", size = 10565379, upload-time = "2026-01-31T23:12:51.345Z" },
+]
+
+[[package]]
+name = "offline-eval"
+version = "0.1.0"
+source = { editable = "crosscures_v2/offline_eval" }
+dependencies = [
+    { name = "duckdb" },
+    { name = "openai" },
+    { name = "openpyxl" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "duckdb", specifier = ">=1.0.0" },
+    { name = "openai", specifier = ">=1.30.0" },
+    { name = "openpyxl", specifier = ">=3.1.0" },
 ]
 
 [[package]]

@@ -8,6 +8,7 @@ requires-python = ">=3.12"
 members = [
     "crosscures",
     "crosscures_v2/backend",
+    "crosscures_v2/offline_eval",
     "ehrshots",
     "epic",
     "medalign",
